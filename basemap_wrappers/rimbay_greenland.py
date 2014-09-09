@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from scipy.io import netcdf
 from mpl_toolkits.basemap import Basemap, shiftgrid, addcyclic
 
-def map_greenland(ax = plt.gca(), coastlines = True, fill_color = 'aqua'):
+def map_greenland(ax = plt.gca(), coastlines = True, fill_color = 'aqua', cont_color = 'coral'):
     """
     Generates a basemap instance with a focus around greenland, fills coastlines and background colors
     
@@ -35,9 +35,8 @@ def map_greenland(ax = plt.gca(), coastlines = True, fill_color = 'aqua'):
                   width = 3500000,
                   resolution = 'l',
                   ax = ax)
-    map.drawmapboundary(fill_color = fill_color)
     if coastlines:
-        map.fillcontinents(color = 'coral', lake_color = fill_color)
         map.drawcoastlines(linewidth = 0.5)
-
+    map.fillcontinents(color = cont_color, lake_color = fill_color, zorder = 0)	
+    map.drawmapboundary(fill_color = fill_color)	   
     return map
