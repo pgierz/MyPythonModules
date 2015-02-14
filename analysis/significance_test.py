@@ -20,9 +20,11 @@ import numpy as np
 from scipy.io import netcdf
 import scipy.stats
 import sys
+import time
 
 
 def _load_data(path):
+    # TODO: This is living in a different module now, it should be loaded from custom_io
     """
     Loads any *netcdf* file into the workspace. Can also load remote files using sftp.
 
@@ -95,7 +97,8 @@ def _data_prep_for_plotting(variablename, ncdf_file):
             sys.exit("The variable you've requested doesn't exist, or lon/lat are incorrectly named in your netcdf file. Please pay 2 tokens to continue")
         else:
             dat = ncdf_file.variables[variablename].data.squeeze()
-
+    # Mask dat1
+    dat = np.ma.masked_equal(dat, -9e+33)
     lon = ncdf_file.variables['lon'].data.squeeze()
     lat = ncdf_file.variables['lat'].data.squeeze()
     dat, lon = shiftgrid(180., dat, lon, start=False)
@@ -132,8 +135,12 @@ class significance_test(object):
     """
     def __init__(self, file1, file2, variable1, variable2):
         super(significance_test, self).__init__()
+        time_start = time.time()
         self.f1 = _load_data(file1)
+        print "Loaded %(file)s in %(time)s seconds" % {'file': file1, 'time': time.time() - time_start}
+        time_start = time.time()
         self.f2 = _load_data(file2)
+        print "Loaded %(file)s in %(time)s seconds" % {'file': file2, 'time': time.time() - time_start}
         self._lons, self._lats, self.variable1 = _data_prep_for_plotting(variable1, file1)
         self._lons, self._lats, self.variable2 = _data_prep_for_plotting(variable2, file2)
         self.anom = self.variable1.mean(axis=0) - self.variable2.mean(axis=0)
