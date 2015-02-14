@@ -1,6 +1,6 @@
 def map_global(coastlines = True, thisax = plt.gca(), fill_color = 'aqua'):
     """
-    Makes a basemap instance of Greenland
+    Makes a basemap instance for a global robinson map
     
     Paul J. Gierz
     """
