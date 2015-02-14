@@ -167,12 +167,13 @@ class significance_test(object):
                     self.sig_mask[j, i] = 0  # float("NaN")
         self.sig_mask = _data_prep_for_plotting(self.sig_mask, file1)[2]
 
-    def plot_anomaly(self, m, **kwargs):
+    def plot_anomaly(self, m, plot_hatches=True, **kwargs):
         # M needs to be a basemap instance
         cb = m.contourf(self._lons, self._lats, self.anom, latlon=True, **kwargs)
         m.colorbar(cb)
-        mask = np.ma.masked_not_equal(self.sig_mask, 1)
-        m.contourf(self._lons, self._lats, mask, 1, colors='white', hatches=['////'], latlon=True)
+        if plot_hatches:
+            mask = np.ma.masked_not_equal(self.sig_mask, 1)
+            m.contourf(self._lons, self._lats, mask, 1, colors='white', hatches=['////'], latlon=True)
 
     def save_sig_mask_as_nc(self, ofile):
         # Save outdata for netcdf!
