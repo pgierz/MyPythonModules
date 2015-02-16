@@ -1,0 +1,3 @@
+[submodule "paleoLibrary"]
+	path = paleoLibrary
+	url = https://github.com/AWI-Paleodyn/paleoLibrary.git
