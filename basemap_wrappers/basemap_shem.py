@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 def map_shem(coastlines=True, thisax=plt.gca(), fill_color='aqua'):
     """
     Makes a basemap instance of Greenland

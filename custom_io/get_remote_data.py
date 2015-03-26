@@ -1,4 +1,4 @@
-def _copy_remote_file(filepath):
+def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
     """
     'Private' function that copies a remote file to /tmp/remote_data
     for use in get remote data
@@ -19,15 +19,14 @@ def _copy_remote_file(filepath):
     # --------------------------------------------------------------------------------
 
     import os
-    import sys
     import paramiko
-    if not os.path.exists('/tmp/remote_data'):
-        os.makedirs('/tmp/remote_data')
-    if not os.path.exists('/tmp/remote_data/'+os.path.basename(filepath)):
+    if not os.path.exists(remote_dump):
+        os.makedirs(remote_dump)
+    if not os.path.exists(remote_dump+os.path.basename(filepath)):
         user = filepath.split(':')[0].split('@')[0]
         host = filepath.split(':')[0].split('@')[1]
         rfile = filepath.split(':')[1]
-        # FIXME: This function only works if .ssh/id_rsa exists and is properly configured                
+        # FIXME: This function only works if .ssh/id_rsa exists and is properly configured
         privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
         mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
         client = paramiko.SSHClient()
@@ -35,26 +34,26 @@ def _copy_remote_file(filepath):
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(host, username=user, pkey=mykey)
         sftp = client.open_sftp()
-        sftp.get(rfile, '/tmp/remote_data/'+os.path.basename(filepath))
+        sftp.get(rfile, remote_dump+os.path.basename(filepath))
         sftp.close()
         client.close()
-        pre_s = "Copied"
+        pre_s = "Copied " + os.path.basename(filepath) + " to " + remote_dump
     else:
-        pre_s = "Loaded from /tmp/remote_data/"
-    return pre_s, '/tmp/remote_data/'+os.path.basename(filepath)
+        pre_s = "Loaded from " + remote_dump
+    return pre_s, remote_dump+os.path.basename(filepath)
 
 
 def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
     """
     A paramiko wrapper that gets file from a remote computer. Parses
     hostname from filepath. Works only for netcdf files!
-    
+
     Keyword Arguments:
     filepath         -- the path of the file with hosname.
     time             -- print time required for loading(default False)
-    info             -- print some information about the file after loading 
+    info             -- print some information about the file after loading
                         (default False)
-    copy_to_local    -- copies file to local /tmp/remote_data/ and checks 
+    copy_to_local    -- copies file to local /tmp/remote_data/ and checks
                         if this file already exists there (default False)
 
     Example:
@@ -63,7 +62,7 @@ def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
     Paul J. Gierz, Sat Feb 14 14:20:43 2015
     """
 
-    #--------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
     # CHANGELOG:
     #
     # First port of this function to the repository that will be
@@ -86,7 +85,7 @@ def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
     # 4) The info statement printing could be cleaner
     #
     # --------------------------------------------------------------------------------
-    
+
     # --------------------------------------------------------------------------------
     # KNOWN ISSUES:
     #
@@ -114,19 +113,19 @@ def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
     if time:
         import time
     import paramiko
-    import os, sys
+    import os
     from scipy.io import netcdf
     if time:
         now = time.time()
-    print "Trying to load ".ljust(40) \
-          +print_colors.WARNING("{f}").format(f=os.path.basename(filepath)).ljust(100)
+        print "Trying to load ".ljust(40) \
+            + print_colors.WARNING("{f}").format(f=os.path.basename(filepath)).ljust(100)
     if not copy_to_local:
         # We wish to split the filepath to get the username, hostname, and
         # path on the remote machine.
         user = filepath.split(':')[0].split('@')[0]
         host = filepath.split(':')[0].split('@')[1]
         rfile = filepath.split(':')[1]
-        # FIXME: This function only works if .ssh/id_rsa exists and is properly configured                
+        # FIXME: This function only works if .ssh/id_rsa exists and is properly configured
         privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
         mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
         client = paramiko.SSHClient()
@@ -138,14 +137,17 @@ def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
         file = netcdf.netcdf_file(fileObject)
         pre_s = "Loaded from "+host
     else:
-        pre_s, fileObject = _copy_remote_file(filepath)
-        file = netcdf.netcdf_file(fileObject)        
+        if type(copy_to_local) is str:
+            pre_s, fileObject = _copy_remote_file(filepath, remote_dump=copy_to_local)
+        else:
+            pre_s, fileObject = _copy_remote_file(filepath)
+        file = netcdf.netcdf_file(fileObject)
     if time:
         print pre_s.ljust(40) \
-        +print_colors.OKGREEN("{filepath}").format(filepath=os.path.basename(filepath)).ljust(100) \
-        +" in ".rjust(0) \
-        +print_colors.OKBLUE("{time}").format(time=round(time.time()-now)) \
-        +" seconds"
+            + print_colors.OKGREEN("{filepath}").format(filepath=os.path.basename(filepath)).ljust(100) \
+            + " in ".rjust(0) \
+            + print_colors.OKBLUE("{time}").format(time=round(time.time()-now)) \
+            + " seconds"
     if info:
         s = print_colors.HEADER("#"*30+" INFO of "+os.path.basename(filepath)+" "+"#"*30)
         print s
@@ -155,5 +157,4 @@ def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
         print "Dimensions: \n"
         print file.dimensions
         print print_colors.HEADER("#"*len(s))
-        
     return file
