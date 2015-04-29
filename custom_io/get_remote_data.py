@@ -1,3 +1,43 @@
+def _progress_for_sft_put(transferred, toBeTransferred):
+    """
+    Puts some information
+    
+    Keyword Arguments:
+    transferred     -- 
+    toBeTransferred -- 
+    
+    Paul J. Gierz, Fri Apr 24 09:12:31 2015
+    """
+    #--------------------------------------------------------------------------------
+    # CHANGELOG:
+    #
+    #
+    #--------------------------------------------------------------------------------
+    
+    #--------------------------------------------------------------------------------
+    # ROADMAP:
+    #
+    #
+    #--------------------------------------------------------------------------------
+    
+    
+    #--------------------------------------------------------------------------------
+    # KNOWN ISSUES:
+    #
+    #
+    #--------------------------------------------------------------------------------
+    
+    print "Transferred: {0}\tOut of: {1}".format(transferred, toBeTransferred)
+    # import progressbar
+    # widgets = ['Getting file: ', Percentage(), ' ', Bar(marker=RotatingMarker()),
+    #        ' ', ETA(), ' ', FileTransferSpeed()]
+    # progress = progressbar.ProgressBar(widgets=widgets, maxval=toBeTransferred).start()
+    # progress.update(transferred)
+    
+
+
+
+
 def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
     """
     'Private' function that copies a remote file to /tmp/remote_data
@@ -34,7 +74,8 @@ def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(host, username=user, pkey=mykey)
         sftp = client.open_sftp()
-        sftp.get(rfile, remote_dump+os.path.basename(filepath))
+        sftp.get(rfile, remote_dump+os.path.basename(filepath), callback=_progress_for_sft_put)
+        
         sftp.close()
         client.close()
         pre_s = "Copied " + os.path.basename(filepath) + " to " + remote_dump
