@@ -1,41 +1,9 @@
-def _progress_for_sft_put(transferred, toBeTransferred):
-    """
-    Puts some information
-    
-    Keyword Arguments:
-    transferred     -- 
-    toBeTransferred -- 
-    
-    Paul J. Gierz, Fri Apr 24 09:12:31 2015
-    """
-    #--------------------------------------------------------------------------------
-    # CHANGELOG:
-    #
-    #
-    #--------------------------------------------------------------------------------
-    
-    #--------------------------------------------------------------------------------
-    # ROADMAP:
-    #
-    #
-    #--------------------------------------------------------------------------------
-    
-    
-    #--------------------------------------------------------------------------------
-    # KNOWN ISSUES:
-    #
-    #
-    #--------------------------------------------------------------------------------
-    
-    print "Transferred: {0}\tOut of: {1}".format(transferred, toBeTransferred)
-    # import progressbar
-    # widgets = ['Getting file: ', Percentage(), ' ', Bar(marker=RotatingMarker()),
-    #        ' ', ETA(), ' ', FileTransferSpeed()]
-    # progress = progressbar.ProgressBar(widgets=widgets, maxval=toBeTransferred).start()
-    # progress.update(transferred)
-    
-
-
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
 def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
@@ -50,16 +18,24 @@ def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
 
     """
     # --------------------------------------------------------------------------------
+    # CHANGELOG:
+    #
+    # FEATURE: There is now a progressbar when copying to the local file system! Hooray!
+    # Paul J. Gierz, Sat Jun 27 12:58:13 2015
+    # --------------------------------------------------------------------------------
+
+    
+    # --------------------------------------------------------------------------------
     # KNOWN ISSUES:
     #
-    # BUG: This function copies to /tmp/remote_data, which might not
-    # be available on all computers, depending on the /tmp/ folder
-    # settings.
-    #     |==> Paul J. Gierz, Sun Feb 15 14:24:39 2015
+    # BUG: This function copies to /tmp/remote_data by default, which
+    # might not be available on all computers, depending on the /tmp/
+    # folder settings.  |==> Paul J. Gierz, Sun Feb 15 14:24:39 2015
     # --------------------------------------------------------------------------------
 
     import os
     import paramiko
+    import progressbar
     if not os.path.exists(remote_dump):
         os.makedirs(remote_dump)
     if not os.path.exists(remote_dump+os.path.basename(filepath)):
@@ -74,8 +50,17 @@ def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(host, username=user, pkey=mykey)
         sftp = client.open_sftp()
-        sftp.get(rfile, remote_dump+os.path.basename(filepath), callback=_progress_for_sft_put)
-        
+        info_rfile = sftp.stat(rfile)
+        widgetlist = [rfile.split("/")[-1], ' ('+sizeof_fmt(info_rfile.st_size)+')', progressbar.Percentage(),' ', progressbar.FileTransferSpeed(), ' ', progressbar.Bar(), ' ', progressbar.ETA(), ' ', progressbar.Timer()]
+        pbar = progressbar.ProgressBar(widgets=widgetlist, maxval=info_rfile.st_size)
+        # Nesting this function might solve my problem?
+        def _progress_cb(done, total):
+            if pbar.start_time is None:
+                pbar.start()
+            pbar.update(done)
+        print "starting transfer..."
+        sftp.get(rfile, remote_dump+os.path.basename(filepath), callback=_progress_cb)
+        pbar.finish()
         sftp.close()
         client.close()
         pre_s = "Copied " + os.path.basename(filepath) + " to " + remote_dump
@@ -160,29 +145,35 @@ def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
         now = time.time()
         print "Trying to load ".ljust(40) \
             + print_colors.WARNING("{f}").format(f=os.path.basename(filepath)).ljust(100)
-    if not copy_to_local:
-        # We wish to split the filepath to get the username, hostname, and
-        # path on the remote machine.
-        user = filepath.split(':')[0].split('@')[0]
-        host = filepath.split(':')[0].split('@')[1]
-        rfile = filepath.split(':')[1]
-        # FIXME: This function only works if .ssh/id_rsa exists and is properly configured
-        privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
-        mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-        client = paramiko.SSHClient()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(host, username=user, pkey=mykey)
-        sftp = client.open_sftp()
-        fileObject = sftp.file(rfile)
-        file = netcdf.netcdf_file(fileObject)
-        pre_s = "Loaded from "+host
+
+
+    if ":" not in filepath:
+        # local file
+        file = netcdf.netcdf_file(filepath)
     else:
-        if type(copy_to_local) is str:
-            pre_s, fileObject = _copy_remote_file(filepath, remote_dump=copy_to_local)
+        if not copy_to_local:
+            # We wish to split the filepath to get the username, hostname, and
+            # path on the remote machine.
+            user = filepath.split(':')[0].split('@')[0]
+            host = filepath.split(':')[0].split('@')[1]
+            rfile = filepath.split(':')[1]
+            # FIXME: This function only works if .ssh/id_rsa exists and is properly configured
+            privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
+            mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+            client = paramiko.SSHClient()
+            client.load_system_host_keys()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(host, username=user, pkey=mykey)
+            sftp = client.open_sftp()
+            fileObject = sftp.file(rfile)
+            file = netcdf.netcdf_file(fileObject)
+            pre_s = "Loaded from "+host
         else:
-            pre_s, fileObject = _copy_remote_file(filepath)
-        file = netcdf.netcdf_file(fileObject)
+            if type(copy_to_local) is str:
+                pre_s, fileObject = _copy_remote_file(filepath, remote_dump=copy_to_local)
+            else:
+                pre_s, fileObject = _copy_remote_file(filepath)
+            file = netcdf.netcdf_file(fileObject)
     if time:
         print pre_s.ljust(40) \
             + print_colors.OKGREEN("{filepath}").format(filepath=os.path.basename(filepath)).ljust(100) \

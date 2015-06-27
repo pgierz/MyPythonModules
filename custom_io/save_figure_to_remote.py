@@ -93,25 +93,28 @@ def _copy_remote_file(path):
     import os
     import paramiko
     lfile = path.split('/')[-1]
-    rfile = path.split(':')[1]
-    remote_path = os.path.split(path.rstrip('/'))[0].split(':')[-1]
-    user = path.split(':')[0].split('@')[0]
-    host = path.split(':')[0].split('@')[1]
-    # FIXME: This function only works if .ssh/id_rsa exists and is properly configured
-    privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
-    mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(host, username=user, pkey=mykey)
-    sftp = client.open_sftp()
-    try:
-        sftp.chdir(remote_path)  # Test if remote_path exists
-    except IOError:
-        sftp.mkdir(remote_path)  # Create remote_path
-    sftp.put(lfile, rfile)
-    sftp.close()
-    client.close()
+    if ":" in path:
+        rfile = path.split(':')[1]
+        remote_path = os.path.split(path.rstrip('/'))[0].split(':')[-1]
+        user = path.split(':')[0].split('@')[0]
+        host = path.split(':')[0].split('@')[1]
+        # FIXME: This function only works if .ssh/id_rsa exists and is properly configured
+        privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
+        mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+        client = paramiko.SSHClient()
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(host, username=user, pkey=mykey)
+        sftp = client.open_sftp()
+        try:
+            sftp.chdir(remote_path)  # Test if remote_path exists
+        except IOError:
+            sftp.mkdir(remote_path)  # Create remote_path
+        sftp.put(lfile, rfile)
+        sftp.close()
+        client.close()
+    else:
+        os.system("mv "+lfile+" "+path)
     return None
 
 
@@ -143,4 +146,5 @@ def save_file_remotely(path):
     # --------------------------------------------------------------------------------
     _save_fig_locally(path)
     _copy_remote_file(path)
-    _delete_fig_locally(path)
+    if ":" in path:
+        _delete_fig_locally(path)
