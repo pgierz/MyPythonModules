@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
 def map_natl(coastlines = True, thisax = plt.gca(), fill_color = 'aqua'):
     """
     Makes a basemap instance of Greenland
