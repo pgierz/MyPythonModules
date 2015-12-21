@@ -10,6 +10,7 @@ Paul J. Gierz Sun Jul 19 20:06:23 2015
 # Local Variables:
 # number_of_prints: 0
 # End:
+import Pyro4
 import os
 import sys
 import socket
@@ -19,8 +20,10 @@ import socket
 
 def _set_up_host_connection(host):
     # set up remote daemon
-    
-    daemon = 
+    # Commands that need to be run:
+    # $ python ~/Code/MyPythonModules/analysis/Remote_Functions_server.py
+    daemon = some_command_that_starts_daemon(host)
+    ns = 
 
 
 
@@ -39,9 +42,14 @@ def _find_on_all_hosts(RUN):
         
 
 
-
-
 class Remote_Functions(object):
+    def evaluate(self, func, args):
+        return self.func(*args)
+
+    def square(self, x):
+        return x**2
+
+
     def _find_full_run_path(self, RUN):
         import os
         import sys
@@ -66,3 +74,14 @@ class Remote_Functions(object):
             print "ERROR: Couldn't find $HOME/.all_runs on ", socket.gethostname()
             return "fail_trigger"
 
+def main():
+    server = Remote_Functions()
+    Pyro4.Daemon.serverSimple(
+        {
+            server: "server"
+        },
+        ns=True)
+
+if __name__ == '__main__':
+    main()
+    

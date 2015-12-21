@@ -11,24 +11,25 @@ suit. Tools gathered in this file do:
 downloading proxy data
 plotting proxy data on a map
 associating proxy data with corresponding model simiulations
+converting 18O in seawater to 18O in calcite.
 
 Paul J. Gierz Wed Feb 18 09:14:17 2015
 """
 
 
-class _proxy_plotting_settings(object):
-    self.terrestrial_marker = 'square'
-    self.cryosphere_marker = 'circle'
-    self.sediment_marker = 'diamond'
-    # TODO: add other markers as they become relevant
+# class _proxy_plotting_settings(object):
+#     self.terrestrial_marker = 'square'
+#     self.cryosphere_marker = 'circle'
+#     self.sediment_marker = 'diamond'
+# TODO: add other markers as they become relevant
 
 
 # Pseudofunctions that I can't look up proper tools for at the moment:
-def download_from_url(url, dest=here):
-    wget url dest  # Or something similar
-    print "loaded " + proxyfile + " from " + URL.
-    # TODO: something with bibinfo??
-    return proxyfile, bibinfo_for_plotting
+# def download_from_url(url, dest=here):    
+#     wget url dest  # Or something similar
+#     print "loaded " + proxyfile + " from " + URL.
+#     # TODO: something with bibinfo??
+#     return proxyfile, bibinfo_for_plotting
 
 
 def plot_proxy_on_existing(proxyfile, lab, ax):
@@ -38,3 +39,10 @@ def plot_proxy_on_existing(proxyfile, lab, ax):
     else:
         # ERROR
         print "Utter failure, sorry"
+
+
+def convert_18Osw_to_18Oc(d18Osw, T):
+    print d18Osw
+    print T
+    d18Oc = (T + d18Osw - 16.9) / -4.0
+    return d18Oc
