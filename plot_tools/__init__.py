@@ -7,6 +7,8 @@ import numpy as np
 import matplotlib.pyplot
 import scipy.io.netcdf
 from mpl_toolkits.basemap import shiftgrid, addcyclic
+import os
+import scipy.stats
 
 
 def mask_out_zeros(dat, tolerance, verbose=False):
@@ -52,10 +54,11 @@ def mask_out_zeros(dat, tolerance, verbose=False):
 def parse_units_to_latex(unit_string):
     """ Converts common typing into latex
     Keyword Arguments:
-    unit_string -- 
+    unit_string --
     """
     # ** is $^{}$
-    unit_string = unit_string.split("**")[0]+"$^{"+unit_string.split("**")[1]+"}$"
+    unit_string = unit_string.split(
+        "**")[0] + "$^{" + unit_string.split("**")[1] + "}$"
 
     ###################################################################
     # NOTE:
@@ -68,100 +71,16 @@ def parse_units_to_latex(unit_string):
     ###################################################################
 
 
-def _decorate_x_axes_for_ymonmean(ax):
-    # Some decoration stuff
-    ax.set_xlabel("Month")
-    ax.set_xlim(-1, 12)
-    ax.xaxis.set_ticks(np.arange(12))
-    ax.xaxis.set_ticklabels(["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"])
-    return ax
-
-    
 def _find_nearest_idx(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
 
-def plot_ymonmean_at_lat_lon(dat, var, lats, lons, ax=matplotlib.pyplot.gca(), **kwargs):
-    """This function plots and dataset of a ymonmean input file in 3
-    dimensions (lat, lon, time) and plots a monthly cycle of that
-    variable at a specified lat and lon.
-
-    If multiple (lats, lons) are given, a mean is made over those lats
-    and lons.
-
-    Paul J. Gierz, Tue Aug 11 20:58:15 2015
-
-    Keyword Arguments:
-    dat  -- the data to plot. Should be a netcdf.netcdf_file instance!
-    var  -- the variable string
-    lats -- the lat or lats to look at (should be between -90 and 90)
-    lons -- the lon or lons to look at (should be between 0 and 360)
-    ax   -- (default matplotlib.pyplot.cga())
-    **kwargs -- matplotlib.pyplot.plot keywords
-
-    returns the plt.plot instance.
-    """
-    # This is wrong. We NEED to have dat in 3 dimensions. I need to
-    # instead test if lats, lons are only len 1 or many
-    assert type(dat) is scipy.io.netcdf.netcdf_file
-    assert dat.variables[var].data.shape[dat.variables[var].dimensions.index("time")] == 12
-    plot_dat = dat.variables[var].data.squeeze()
-    lon_list = dat.variables['lon'].data.squeeze()
-    lat_list = dat.variables['lat'].data.squeeze()
-    time = np.arange(12)
-    llon, llat = np.meshgrid(lons, lats)
-    use_lons, use_lats = [], []
-    if type(lats) in [int, float]:
-        lats = [lats]
-    if type(lons) in [int, float]:
-        lons = [lons]    
-    for i, j in zip(range(len(lats)), range(len(lons))):
-        use_lats.append(_find_nearest_idx(lat_list, lats[i]))
-        use_lons.append(_find_nearest_idx(lon_list, lons[j]))
-    plot_dat = plot_dat[:, use_lats, use_lons]
-    plot_dat.reshape((plot_dat.shape[0], -1)).mean(axis=1)
-    # plot_dat = plot_dat[:, use_lats, use_lons].mean(axis=(1, 2))
-    p = ax.plot(time, plot_dat, **kwargs)
-
-    # Some decoration stuff
-    ax = _decorate_x_axes_for_ymonmean(ax)
-    ax.set_ylabel(dat.variables[var].long_name+" ("+dat.variables[var].units+")")
-    return p
-
-
-def plot_ymonmean_from_ncdf_var(dat, var, ax=matplotlib.pyplot.gca(), **kwargs):
-    """This function plots and dataset of a ymonmean input file in 2
-    dimensions (time, val) and plots a monthly cycle of that
-    variable
-
-    Paul J. Gierz, Wed Aug 12 10:54:12 2015
-
-    Keyword Arguments:
-    dat  -- the data to plot. Should be a netcdf.netcdf_file
-    var  -- the variable string
-    ax   -- (default matplotlib.pyplot.cga())
-    **kwargs -- matplotlib.pyplot.plot keywords
-
-    returns the plt.plot instance.
-    """
-    # This is wrong. We NEED to have dat in 3 dimensions. I need to
-    # instead test if lats, lons are only len 1 or many
-    assert type(dat) is scipy.io.netcdf.netcdf_file
-    assert dat.variables[var].data.shape[dat.variables[var].dimensions.index("time")] == 12
-    plot_dat = dat.variables[var].data.squeeze()
-    time = np.arange(12)
-    p = ax.plot(time, plot_dat, **kwargs)
-    # Some decoration stuff
-    ax = _decorate_x_axes_for_ymonmean(ax)
-    ax.set_ylabel(dat.variables[var].long_name+" ("+dat.variables[var].units+")")
-    return p
-
-
 def plot_var_from_ncdf_file(varname, file, mm, **cfopts):
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
-        var = np.ma.masked_equal(RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
     else:
         var = RUN.variables[varname].data.squeeze()
     lon = RUN.variables['lon'].data.squeeze()
@@ -176,15 +95,37 @@ def plot_var_from_ncdf_file(varname, file, mm, **cfopts):
     return cf
 
 
+def plot_var_mean_from_ncdf_file(varname, file, mm, **cfopts):
+    RUN = file
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    var = var.mean(axis=0)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
+    return cf
+
+
 def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, **cfopts):
     RUN = file
     CTL = cfile
     if hasattr(RUN.variables[varname], "_FillValue"):
-        var = np.ma.masked_equal(RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
     else:
         var = RUN.variables[varname].data.squeeze()
     if hasattr(CTL.variables[varname], "_FillValue"):
-        ctl = np.ma.masked_equal(CTL.variables[varname].data.squeeze(), CTL.variables[varname]._FillValue)
+        ctl = np.ma.masked_equal(
+            CTL.variables[varname].data.squeeze(), CTL.variables[varname]._FillValue)
     else:
         ctl = CTL.variables[varname].data.squeeze()
     lon = RUN.variables['lon'].data.squeeze()
@@ -203,12 +144,44 @@ def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, **cfopts):
 def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, **cfopts):
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
-        var = np.ma.masked_equal(RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
     else:
         var = RUN.variables[varname].data.squeeze()
     var = var[ts, :, :]
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
+    return cf
+
+
+def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, **cfopts):
+    RUN = file
+    CTL = cfile
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[varname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[varname].data.squeeze(), CTL.variables[varname]._FillValue)
+    else:
+        ctl = CTL.variables[varname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    var = var[ts, :, :]
+    ctl = ctl[ts, :, :]
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
     var, lon = shiftgrid(180., var, lon, start=False)
     var, lon = addcyclic(var, lon)
     mm.drawmapboundary(fill_color='gray')
@@ -230,4 +203,121 @@ def plot_array_on_ncdf_file_lon_lat_grid(var, file, mm, **cfopts):
     cf = mm.contourf(lons, lats, var, latlon=True,
                      extend='both',
                      **cfopts)
+    return cf
+
+
+def add_subplot_axes(ax, rect, axisbg='w', fig=None):
+    if fig is None:
+        fig = matplotlib.pyplot.gcf()
+    box = ax.get_position()
+    width = box.width
+    height = box.height
+    inax_position = ax.transAxes.transform(rect[0:2])
+    transFigure = fig.transFigure.inverted()
+    infig_position = transFigure.transform(inax_position)
+    x = infig_position[0]
+    y = infig_position[1]
+    width *= rect[2]
+    height *= rect[3]  # <= Typo was here
+    subax = fig.add_axes(
+        [x, y, width, height], axisbg=axisbg, transform=ax.transAxes)
+    x_labelsize = subax.get_xticklabels()[0].get_size()
+    y_labelsize = subax.get_yticklabels()[0].get_size()
+    x_labelsize *= rect[2] ** 0.5
+    y_labelsize *= rect[3] ** 0.5
+    subax.xaxis.set_tick_params(labelsize=x_labelsize)
+    subax.yaxis.set_tick_params(labelsize=y_labelsize)
+    return subax
+
+##########################################################################
+##########################################################################
+##########################################################################
+# Stuff for the anomaly hatching:
+
+
+def estimated_autocorrelation(x):
+    """
+    Since I don't like black boxes, I use my own autocorrelation so
+    we know what is happening with the stats. Sources are given below:
+
+    http://stackoverflow.com/q/14297012/190597
+    http://en.wikipedia.org/wiki/Autocorrelation#Estimation
+
+    Paul J. Gierz, Thu Jan 15 14:36:32 2015
+    """
+    n = len(x)
+    variance = x.var()
+    x = x - x.mean()
+    r = np.correlate(x, x, mode='full')[-n:]
+    result = r / (variance * (np.arange(n, 0, -1)))
+    return result
+
+##########################################################################
+
+
+def compute_significance(file1, cfile, var, mask_cutoff, verbose=False):
+    x = file1.variables[var].data.squeeze()
+    y = cfile.variables[var].data.squeeze()
+    dimnames = file1.variables[var].dimensions
+    dimshape = file1.variables[var].data.shape
+    dims = {}
+    for i, j in zip(dimnames, dimshape):
+        dims[i] = j
+    sig_mask = np.zeros((dims['lat'], dims['lon']))
+    for i in range(dims['lon']):
+        for j in range(dims['lat']):
+            xx = x[:, j, i]
+            yy = y[:, j, i]
+            autocorrx = max(estimated_autocorrelation(xx)[1], 0)
+            autocorry = max(estimated_autocorrelation(yy)[1], 0)
+            eff_dof1 = dims['time'] * (1 - autocorrx) / (1 + autocorrx)
+            eff_dof2 = dims['time'] * (1 - autocorry) / (1 + autocorry)
+            eff_dof_comb = min(eff_dof1, eff_dof2)
+            cutoff = scipy.stats.t.ppf(mask_cutoff, eff_dof_comb)
+            t_test = abs(
+                xx.mean() - yy.mean()) / ((xx.var() / dims['time'] + yy.var() / dims['time']) ** 0.5)
+            if t_test < cutoff:
+                sig_mask[j, i] = 1
+                # print "a nonsignificant change was masked!"
+            else:
+                sig_mask[j, i] = 0  # float("NaN")
+            if verbose:
+                print i, j
+                print "#########################################################################"
+                print cutoff, t_test
+                print t_test < cutoff
+    return sig_mask
+
+
+def plot_var_anom_hatching_from_ncdf_file(varname, RUN, CTL, mm, mask_cutoff=0.975, verbosity=False, **cfopts):
+    sig_mask = compute_significance(RUN, CTL, varname, mask_cutoff, verbose=verbosity)
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+        ctl = np.ma.masked_equal(
+            CTL.variables[varname].data.squeeze(), CTL.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+        ctl = CTL.variables[varname].data.squeeze()
+    var = var - ctl
+    lon = RUN.variables['lon'].data.squeeze()
+    lon2 = lon
+    lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    # print sig_mask
+    var = var.mean(axis=0)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
+    mask = np.ma.masked_not_equal(sig_mask, 1)
+    # mask = sig_mask
+    mask, lon2 = shiftgrid(180., mask, lon2, start=False)
+    mask, lon2 = addcyclic(mask, lon2)
+    mm.contourf(
+        lons, lats, mask, 1, colors="none",  hatches=["\\\\\\\\"], latlon=True)
+    mm.contourf(
+        lons, lats, mask, 1, colors="none", hatches=["////////"], latlon=True)
     return cf
