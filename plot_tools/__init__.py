@@ -11,6 +11,16 @@ import os
 import scipy.stats
 
 
+def _decorate_x_axes_for_ymonmean(ax):
+    # Some decoration stuff
+    ax.set_xlabel("Month")
+    ax.set_xlim(-1, 12)
+    ax.xaxis.set_ticks(np.arange(12))
+    ax.xaxis.set_ticklabels(
+        ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"])
+    return ax
+
+
 def mask_out_zeros(dat, tolerance, verbose=False):
     """
     Masks out zeros of a dat with a padding given by tolerance
@@ -177,8 +187,18 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, **cfopts
         ctl = CTL.variables[varname].data.squeeze()
     var = var.squeeze()
     ctl = ctl.squeeze()
-    var = var[ts, :, :]
-    ctl = ctl[ts, :, :]
+    if (type(ts) is int) or (type(ts) is float):
+        print "selecting timestep!"
+        var = var[ts, :, :]
+        ctl = ctl[ts, :, :]
+    elif type(ts) is list:
+        print "making mean!"
+        var = var[ts, :, :].mean(axis=0)
+        print var
+        ctl = ctl[ts, :, :].mean(axis=0)
+        print ctl
+    print var.shape
+    print ctl.shape
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
