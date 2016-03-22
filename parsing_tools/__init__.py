@@ -37,13 +37,13 @@ def get_model_component_from_varname(varname):
             mpiom_wiso_varlist[
                 mpiom_wiso_varlist.index(v)] = v.strip().split()[1]
     if varname in echam5_main_varlist:
-        return "echam5"
+        return "echam5_main"
     elif varname in echam5_wiso_varlist:
-        return "echam5-wiso"
+        return "echam5_wiso"
     elif varname in mpiom_main_varlist:
-        return "mpiom"
+        return "mpiom_main"
     elif varname in mpiom_wiso_varlist:
-        return "mpiom-wiso"
+        return "mpiom_wiso"
     else:
         return None
 
@@ -81,3 +81,6 @@ def load_required_data(varname, exps, expids):
             remap_suff = ""
         sim_dict[eid] = get_remote_data(exp+"/post/"+mod_component.split("_")[1]+"/"+eid+mod_component+varname+"_timmean"+remap_suff+".nc", copy_to_local=True)
      
+
+def get_time_axis_from_netcdf(ncfile):
+    ncfile

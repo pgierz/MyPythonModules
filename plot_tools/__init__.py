@@ -9,7 +9,9 @@ import scipy.io.netcdf
 from mpl_toolkits.basemap import shiftgrid, addcyclic
 import os
 import scipy.stats
+import cdo
 
+CDO = cdo.Cdo()
 
 def _decorate_x_axes_for_ymonmean(ax):
     # Some decoration stuff
@@ -151,6 +153,25 @@ def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, **cfopts):
     return cf
 
 
+def plot_var_1D_timeseries_from_ncdf_file(varname, RUN, ax, plotlev=None, runmean_interval=None, **pltopts):
+    if runmean_interval is not None:
+        var = CDO.runmean(str(runmean_interval), input=RUN.filename, returnCdf=True).variables[varname][:].squeeze()
+    else:
+        if hasattr(RUN.variables[varname], "_FillValue"):
+            var = np.ma.masked_equal(
+                RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+        else:
+            var = RUN.variables[varname].data.squeeze()
+    if plotlev is not None:
+        var = var[:, plotlev].squeeze()
+    if runmean_interval is not None:
+        lp = ax.plot(np.arange(len(var)) + runmean_interval/2.0, var, **pltopts) 
+    else:
+        lp = ax.plot(var, **pltopts)  # lp for "line plot"
+    return lp
+    
+
+
 def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, **cfopts):
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
@@ -188,17 +209,17 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, **cfopts
     var = var.squeeze()
     ctl = ctl.squeeze()
     if (type(ts) is int) or (type(ts) is float):
-        print "selecting timestep!"
+        # print "selecting timestep!"
         var = var[ts, :, :]
         ctl = ctl[ts, :, :]
     elif type(ts) is list:
-        print "making mean!"
+        # print "making mean!"
         var = var[ts, :, :].mean(axis=0)
-        print var
+        # print var
         ctl = ctl[ts, :, :].mean(axis=0)
-        print ctl
-    print var.shape
-    print ctl.shape
+        # print ctl
+    # print var.shape
+    # print ctl.shape
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
@@ -226,27 +247,39 @@ def plot_array_on_ncdf_file_lon_lat_grid(var, file, mm, **cfopts):
     return cf
 
 
-def add_subplot_axes(ax, rect, axisbg='w', fig=None):
+def add_subplot_axes(ax, rect, axisbg='w', fig=None, transform=True):
+    """ 
+    What does this function do?
+
+    From what I can tell, it adds an inset axes.
+
+    Paul J. Gierz, Tue Mar  1 10:57:37 2016
+    """
     if fig is None:
         fig = matplotlib.pyplot.gcf()
     box = ax.get_position()
     width = box.width
     height = box.height
     inax_position = ax.transAxes.transform(rect[0:2])
+    # inax_position = rect[0:2]
     transFigure = fig.transFigure.inverted()
     infig_position = transFigure.transform(inax_position)
     x = infig_position[0]
     y = infig_position[1]
     width *= rect[2]
     height *= rect[3]  # <= Typo was here
-    subax = fig.add_axes(
-        [x, y, width, height], axisbg=axisbg, transform=ax.transAxes)
-    x_labelsize = subax.get_xticklabels()[0].get_size()
-    y_labelsize = subax.get_yticklabels()[0].get_size()
-    x_labelsize *= rect[2] ** 0.5
-    y_labelsize *= rect[3] ** 0.5
-    subax.xaxis.set_tick_params(labelsize=x_labelsize)
-    subax.yaxis.set_tick_params(labelsize=y_labelsize)
+    if transform:
+        subax = fig.add_axes(
+            [x, y, width, height], axisbg=axisbg, transform=ax.transAxes)
+    else:
+        subax = fig.add_axes(
+            [x, y, width, height], axisbg=axisbg)
+    # x_labelsize = subax.get_xticklabels()[0].get_size()
+    # y_labelsize = subax.get_yticklabels()[0].get_size()
+    # x_labelsize *= rect[2] ** 0.5
+    # y_labelsize *= rect[3] ** 0.5
+    # subax.xaxis.set_tick_params(labelsize=x_labelsize)
+    # subax.yaxis.set_tick_params(labelsize=y_labelsize)
     return subax
 
 ##########################################################################
