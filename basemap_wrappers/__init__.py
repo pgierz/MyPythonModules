@@ -57,3 +57,20 @@ def map_europe(coastlines=True, thisax=None, fill_color='aqua'):
         m.fillcontinents(color='coral', lake_color='aqua')
         m.drawmapboundary(fill_color=fill_color)
     return m
+
+
+def map_shem(coastlines=True, thisax=None, fill_color='aqua'):
+    """
+    Makes a basemap instance of Greenland
+
+    Paul J. Gierz
+    """
+    from mpl_toolkits.basemap import Basemap
+    m = Basemap(projection='spstere', boundinglat=-40,
+                lon_0=180, resolution='l', ax=thisax)
+    if coastlines:
+        m.drawcoastlines()
+    if fill_color is not None:
+        m.fillcontinents(color='coral', lake_color='aqua')
+        m.drawmapboundary(fill_color=fill_color)
+    return m

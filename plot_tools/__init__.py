@@ -374,3 +374,18 @@ def plot_var_anom_hatching_from_ncdf_file(varname, RUN, CTL, mm, mask_cutoff=0.9
     mm.contourf(
         lons, lats, mask, 1, colors="none", hatches=["////////"], latlon=True)
     return cf
+
+
+def plot_insolation(ax, run, ctl, cb=False, **kwargs):
+    time = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24)
+    var = "srad0d"
+    inso = np.append(run.variables[var].data.squeeze(), run.variables[var].data.squeeze(), axis=0) - np.append(ctl.variables[var].data.squeeze(), ctl.variables[var].data.squeeze(), axis=0)
+    lat = run.variables['lat'].data.squeeze()
+    cf = ax.contourf(time, lat, inso.transpose(), **kwargs)
+    ax.xaxis.set_ticks((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13))
+    ax.xaxis.set_ticklabels(("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D", "J"))
+    ax.set_xlim(1, 13)
+    ax.yaxis.set_ticks((-85, -45, 0, 45, 85))
+    ax.yaxis.set_ticklabels((-90, -45, 0, 45, 90))
+    return cf
+

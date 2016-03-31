@@ -84,7 +84,16 @@ def Friedman_ONeil_1977_d18Oc(T, W):
 
 
 def Kim_ONeill_Corrected_1997_d18Oc(T, W):
-    print T.shape, W.shape
+    # print T.shape, W.shape
     C = np.exp((2000000.0 * T * np.log(W + 1000.0) - 64340.0 * T + 546300000.0 *
                 np.log(W + 1000.0) + 18485529.0) / (100000.0 * (20.0 * T + 5463.0))) - 1000.0
     return (C - 30.91) / 1.03091
+
+
+def Kim_ONeill_after_MW(T, W):
+    C = W + 18.03 * (1000 / T) - 32.42 + 0.27
+    return C
+
+
+def convert_SMOW_to_PDB(d18O_S):
+    return 0.97002 * d18O_S - 29.98

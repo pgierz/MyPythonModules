@@ -58,6 +58,14 @@ class cosmos_simulation(object):
                                copy_to_local=True)
         return data
 
+    def analysis_AMOC_spatial(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_make_amoc.sh ", None)
+        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix
+        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_MOC_complete_180x40_Sv_timmean.nc",
+                               copy_to_local=True)
+        return data
+
+    
     def analysis_yearmean(self, varname):
         component = get_model_component_from_varname(varname)
         # print component
@@ -109,3 +117,10 @@ class cosmos_simulation(object):
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix,
                                copy_to_local=True)
         return data
+
+    def analysis_insolation(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_insolation.sh", None)
+        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_main_srad0d_ymonmean_zonmean.nc",
+                               copy_to_local=True)
+        return data
+                               
