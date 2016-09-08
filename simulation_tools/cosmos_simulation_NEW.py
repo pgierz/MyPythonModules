@@ -2,8 +2,18 @@ from custom_io import get_remote_data, custom_io_constants
 from parsing_tools import get_model_component_from_varname, lists
 import os
 from scipy.io import netcdf
+import cdo
+
+CDO = cdo.Cdo()
 
 
+def fix_mpiom_levels(fname):
+    if CDO.nlevel(input=fname)[0] == "40":
+        if not CDO.showlevel(input=fname)[0].split(" ")[0] == "6":
+            os.system("cdo invertlev "+fname+" tmp")
+            os.system("mv tmp "+fname)
+
+            
 class _cosmos_simulation(object):
     """
     # TODO I need to write some documentation for this
@@ -69,7 +79,7 @@ class cosmos_standard_analysis(_cosmos_simulation):
         return True
 
     def _time_analysis(self, varname, time_operator):
-        self._check_mpiom(varname)
+        mpiom_var = self._check_mpiom(varname)
         component = get_model_component_from_varname(varname)
         # What would this file be called on the remote host?
         rfile = self.path + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
@@ -78,6 +88,8 @@ class cosmos_standard_analysis(_cosmos_simulation):
                               custom_io_constants.local_experiment_storehouse)
         # Try to load from local first:
         if os.path.exists(lfile):
+            if mpiom_var:
+                fix_mpiom_levels(lfile)
             return netcdf.netcdf_file(lfile)
         # Otherwise, make and load:
         else:
@@ -136,17 +148,22 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
             return False
 
     def _wiso_analysis(self, varname, time_operator):
-        component = get_model_component_from_varname()
+        component = get_model_component_from_varname(varname)
         mpiom_var = self._check_mpiom(varname)
         rfile = self.path + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
         lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
                               custom_io_constants.local_experiment_storehouse)
         if os.path.exists(lfile):
+            if mpiom_var:
+                fix_mpiom_levels(lfile)
             return netcdf.netcdf_file(lfile)
         else:
             if mpiom_var:
-                self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_delta18O_"+time_operator+".sh", None)
-                return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile.replace(varname, "delta18O"), copy_to_local=True))
+                if varname is "delta18Osw":
+                    self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_delta18O_"+time_operator+".sh", None)
+                else:
+                    self._time_analysis(varname, time_operator)
+                return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
             else:
                 # Some other code that does the appropriate echam analysis
                 self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_echam5_"+time_operator+".sh "+varname, None)

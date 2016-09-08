@@ -87,3 +87,15 @@ def map_pacific(coastlines=True, thisax=None, fill_color=None):
         m.fillcontinents(color='coral', lake_color='aqua')
         m.drawmapboundary(fill_color=fill_color)
     return m
+
+
+def map_carrib(coastlines=True, thisax=None, fill_color=None):
+    m = Basemap(llcrnrlat=-10, llcrnrlon=-110, urcrnrlat=40, urcrnrlon=-10,
+                resolution='c', ax=thisax)
+    if coastlines:
+        m.drawcoastlines(linewidth=0.33)
+    if fill_color is not None:
+        m.fillcontinents(color='coral', lake_color='aqua')
+        m.drawmapboundary(fill_color=fill_color)
+    return m
+        

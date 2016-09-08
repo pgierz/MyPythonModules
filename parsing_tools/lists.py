@@ -38,16 +38,17 @@ echam5_wiso_list = ["wisoaprt_d",
                     "temp2",
                     "tsurf"]
 
-mpiom_wiso_list = ["scal_lon ",    
-                   "scal_lat ",    
+mpiom_wiso_list = ["scal_lon",    
+                   "scal_lat",    
                    "scal_wdep",    
-                   "size_x   ",    
-                   "size_y   ",    
-                   "size_z   ",    
-                   "h2o18_t  ",    
-                   "hDo16_t  ",    
-                   "h2o16_t  ",    
+                   "size_x",    
+                   "size_y",    
+                   "size_z",    
+                   "h2o18_t",    
+                   "hDo16_t",    
+                   "h2o16_t",    
                    "h2o18_ice",    
                    "hDo16_ice",    
-                   "h2o16_ice"]
+                   "h2o16_ice",
+                   "delta18Osw"]
 

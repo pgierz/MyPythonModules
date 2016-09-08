@@ -295,6 +295,66 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
                      **cfopts)
     return cf
 
+def plot_var_anom_from_ncdf_file_timestep_depth(varname, ts, depth, file, cfile, mm, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname = varname
+    RUN = file
+    CTL = cfile
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
+    else:
+        ctl = CTL.variables[ovarname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    print "Beginning of selection:"
+    print "Var has shape:"
+    print var.shape
+    print "Ctl has shape:"
+    print ctl.shape
+    print "Selecting based upon:"
+    print "Timestep:"
+    print type(ts)
+    print "Depth:"
+    print type(depth)
+    if ((type(ts) is int) or (type(ts) is float) and (type(depth) is int) or (type(depth) is float)):
+        print "selecting timestep and depth!"
+        var = var[ts, depth, :, :]
+        if len(ctl.shape) != 2:
+            ctl = ctl[ts, depth, :, :]
+    if type(ts) is list:
+        print "making mean of timesteps!"
+        var = var[ts, :, :, :].mean(axis=0).squeeze()
+        # print var
+        ctl = ctl[ts, :, :, :].mean(axis=0).squeeze()
+        # print ctl
+    if type(depth) is list:
+        print "making mean of depths!"
+        var = var[depth, :, :].mean(axis=0).squeeze()
+        # print var
+        ctl = ctl[depth, :, :].mean(axis=0).squeeze()
+        # print ctl
+    print var.shape
+    print ctl.shape
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
+    return cf
+
+
 
 def plot_array_on_ncdf_file_lon_lat_grid(var, file, mm, **cfopts):
     RUN = file
