@@ -1,6 +1,8 @@
 import socket
 import os
 
+valid_components = ["echam5_wiso", "echam5_main", "mpiom_main", "mpiom_wiso"]
+
 
 def get_model_component_from_varname(varname):
     if "REFDIR" in os.environ.keys():
@@ -45,6 +47,7 @@ def get_model_component_from_varname(varname):
     elif varname in mpiom_wiso_varlist:
         return "mpiom_wiso"
     else:
+        print "parsing_tools.get_model_component_from_varname (in __init__) does not know this variable!"
         return None
 
     

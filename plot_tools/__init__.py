@@ -10,8 +10,10 @@ from mpl_toolkits.basemap import shiftgrid, addcyclic
 import os
 import scipy.stats
 import cdo
+from proxy_tools import Kim_ONeill_after_MW, convert_SMOW_to_PDB
 
 CDO = cdo.Cdo()
+
 
 def _decorate_x_axes_for_ymonmean(ax):
     # Some decoration stuff
@@ -88,7 +90,7 @@ def _find_nearest_idx(array, value):
     return idx
 
 
-def plot_var_from_ncdf_file(varname, file, mm, **cfopts):
+def plot_var_from_ncdf_file(varname, file, mm, factor=1, **cfopts):
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
         var = np.ma.masked_equal(
@@ -101,9 +103,50 @@ def plot_var_from_ncdf_file(varname, file, mm, **cfopts):
     var, lon = addcyclic(var, lon)
     mm.drawmapboundary(fill_color='gray')
     lons, lats = np.meshgrid(lon, lat)
+    var = var * factor
     cf = mm.contourf(lons, lats, var, latlon=True,
                      extend='both',
                      **cfopts)
+    return cf
+
+
+def pcolormesh_var_from_ncdf_file(varname, file, mm, **cfopts):
+    RUN = file
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.pcolormesh(lons, lats, var, latlon=True,
+                       edgecolor="gray", linestyle=":",
+                       lw=0.15,
+                       **cfopts)
+    return cf
+
+
+def pcolormesh_var_from_ncdf_file_nogrid(varname, file, mm, **cfopts):
+    RUN = file
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.pcolormesh(lons, lats, var, latlon=True,
+                       edgecolor="gray", linestyle=":",
+                       lw=0,
+                       **cfopts)
     return cf
 
 
@@ -127,7 +170,9 @@ def plot_var_mean_from_ncdf_file(varname, file, mm, **cfopts):
     return cf
 
 
-def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, **cfopts):
+def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, factor=1, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname = varname
     RUN = file
     CTL = cfile
     if hasattr(RUN.variables[varname], "_FillValue"):
@@ -135,14 +180,17 @@ def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, **cfopts):
             RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
     else:
         var = RUN.variables[varname].data.squeeze()
-    if hasattr(CTL.variables[varname], "_FillValue"):
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
         ctl = np.ma.masked_equal(
-            CTL.variables[varname].data.squeeze(), CTL.variables[varname]._FillValue)
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
     else:
-        ctl = CTL.variables[varname].data.squeeze()
+        ctl = CTL.variables[ovarname].data.squeeze()
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
+    var = var * factor
+    ctl = ctl * factor
     var = var - ctl
+    print var.shape
     var, lon = shiftgrid(180., var, lon, start=False)
     var, lon = addcyclic(var, lon)
     mm.drawmapboundary(fill_color='gray')
@@ -151,6 +199,8 @@ def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, **cfopts):
                      extend='both',
                      **cfopts)
     return cf
+
+
 
 
 def plot_var_1D_timeseries_from_ncdf_file(varname, RUN, ax, plotlev=None, runmean_interval=None, **pltopts):
@@ -168,11 +218,12 @@ def plot_var_1D_timeseries_from_ncdf_file(varname, RUN, ax, plotlev=None, runmea
         lp = ax.plot(np.arange(len(var)) + runmean_interval/2.0, var, **pltopts) 
     else:
         lp = ax.plot(var, **pltopts)  # lp for "line plot"
-    return lp
-    
+    return
 
 
-def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, **cfopts):
+def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname=varname
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
         var = np.ma.masked_equal(
@@ -192,7 +243,9 @@ def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, **cfopts):
     return cf
 
 
-def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, **cfopts):
+def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname = varname
     RUN = file
     CTL = cfile
     if hasattr(RUN.variables[varname], "_FillValue"):
@@ -201,25 +254,35 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, **cfopts
     else:
         var = RUN.variables[varname].data.squeeze()
 
-    if hasattr(CTL.variables[varname], "_FillValue"):
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
         ctl = np.ma.masked_equal(
-            CTL.variables[varname].data.squeeze(), CTL.variables[varname]._FillValue)
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
     else:
-        ctl = CTL.variables[varname].data.squeeze()
+        ctl = CTL.variables[ovarname].data.squeeze()
     var = var.squeeze()
     ctl = ctl.squeeze()
+    print "Beginning of selection:"
+    print "Var has shape:"
+    print var.shape
+    print "Ctl has shape:"
+    print ctl.shape
+    print "Selecting based upon:" 
+    print type(ts)
     if (type(ts) is int) or (type(ts) is float):
-        # print "selecting timestep!"
+        print "selecting timestep!"
         var = var[ts, :, :]
-        ctl = ctl[ts, :, :]
+        if len(ctl.shape) != 2:
+            ctl = ctl[ts, :, :]
     elif type(ts) is list:
-        # print "making mean!"
+        print "making mean!"
         var = var[ts, :, :].mean(axis=0)
         # print var
         ctl = ctl[ts, :, :].mean(axis=0)
         # print ctl
-    # print var.shape
-    # print ctl.shape
+    else:
+        print "Logic error! Check your inputs"
+    print var.shape
+    print ctl.shape
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
@@ -387,5 +450,35 @@ def plot_insolation(ax, run, ctl, cb=False, **kwargs):
     ax.set_xlim(1, 13)
     ax.yaxis.set_ticks((-85, -45, 0, 45, 85))
     ax.yaxis.set_ticklabels((-90, -45, 0, 45, 90))
+    return cf
+
+
+def plot_d18O_calcite_from_ncfiles_anom(file_temp, file_d18Op, cfile_temp, cfile_d18Op, mm,
+                                        temp_name="temp2", ctemp_name="temp2", d18Op_name="wisoaprt_d", cd18Op_name="wisoaprt_d",
+                                        use_Celsius=False,
+                                        **cfopts):
+    T = file_temp.variables[temp_name].data.squeeze()
+    W = file_d18Op.variables[d18Op_name].data.squeeze()
+    if use_Celsius:
+        C = convert_SMOW_to_PDB(Kim_ONeill_after_MW(T+273.15, W))
+    else:
+        C = convert_SMOW_to_PDB(Kim_ONeill_after_MW(T, W))
+    CT = cfile_temp.variables[ctemp_name].data.squeeze()
+    CW = cfile_d18Op.variables[cd18Op_name].data.squeeze()
+    if use_Celsius:
+        CC = convert_SMOW_to_PDB(Kim_ONeill_after_MW(CT+273.15, CW))
+    else:
+        CC = convert_SMOW_to_PDB(Kim_ONeill_after_MW(CT, CW))
+    lon = file_temp.variables['lon'].data.squeeze()
+    lat = file_temp.variables['lat'].data.squeeze()
+    var = C - CC
+
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
     return cf
 

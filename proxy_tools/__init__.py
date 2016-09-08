@@ -97,3 +97,6 @@ def Kim_ONeill_after_MW(T, W):
 
 def convert_SMOW_to_PDB(d18O_S):
     return 0.97002 * d18O_S - 29.98
+
+# def Shackelton_after_MW(T, W):
+    
