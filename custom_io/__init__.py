@@ -75,8 +75,7 @@ def _copy_remote_file(rfile, host, client):
 
 # Main Function
 def get_remote_data(filepath, copy_to_local=None):
-    copy_to_local = copy_to_local or os.path.exists(
-        constants.local_experiment_storehouse)
+    copy_to_local = copy_to_local or os.path.exists(constants.local_experiment_storehouse)
     user = filepath.split(':')[0].split('@')[0]
     host = filepath.split(':')[0].split('@')[1]
     rfile = filepath.split(':')[1]
