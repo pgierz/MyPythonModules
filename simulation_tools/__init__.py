@@ -1,17 +1,50 @@
-from custom_io import get_remote_data
-from scipy.io import netcdf
-from parsing_tools import get_model_component_from_varname, valid_components
+from custom_io import get_remote_data, custom_io_constants
+from parsing_tools import get_model_component_from_varname, lists
 import os
+from scipy.io import netcdf
+import cdo
+
+CDO = cdo.Cdo()
+
+GLOBAL_DEBUG = True
 
 
-class cosmos_simulation(object):
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def debug(s):
+    if GLOBAL_DEBUG:
+        print bcolors.FAIL + "DEBUG: "+s+bcolors.ENDC
+
+
+def header(s):
+    print bcolors.HEADER+s+bcolors.ENDC
+
+    
+def fix_mpiom_levels(fname):
+    if CDO.nlevel(input=fname)[0] == "40":
+        if not CDO.showlevel(input=fname)[0].split(" ")[0] == "6":
+            os.system("cdo invertlev "+fname+" tmp")
+            os.system("mv tmp "+fname)
+
+            
+class _cosmos_simulation(object):
     """
     # TODO I need to write some documentation for this
 
     Paul J. Gierz, Sat Feb  6 13:37:00 2016
     """
+
     def __init__(self, path):
-        super(cosmos_simulation, self).__init__()
+        super(_cosmos_simulation, self).__init__()
         self._script_dir = "/Users/pgierz/Research/scripts/"
         self.fullpath = path
         self.user = path.split(":")[0].split("@")[0]
@@ -30,139 +63,188 @@ class cosmos_simulation(object):
         sendargs = []
         if needs_exp:
             for a in range(len(args)):
-                sendargs.append(self.path + "/" + args[a].replace("@EXPID@", self.expid))
+                sendargs.append(self.path + "/" +
+                                args[a].replace("@EXPID@", self.expid))
         else:
             sendargs = args
 
         # If script is link, expand to the real thing:
         if args is not None:
-            command = 'ssh ' + self.user + "@" + self.host + ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
+            command = 'ssh -T ' + self.user + "@" + self.host + \
+                      ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
                       self.path + '/analysis_scripts; bash -sl" < ' + \
                       os.path.realpath(script) + " " + " ".join(sendargs)
         else:
-            command = 'ssh ' + self.user + "@" + self.host + ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
+            command = 'ssh -T ' + self.user + "@" + self.host + \
+                      ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
                       self.path + '/analysis_scripts; bash -sl" < ' + \
-                      os.path.realpath(script)    
+                      os.path.realpath(script)
         os.system(command)
 
-    def analysis_timmean(self, varname, sfc=False):
+
+class cosmos_standard_analysis(_cosmos_simulation):
+    """
+    docstring
+    """
+
+    def __init__(self, path):
+        _cosmos_simulation.__init__(self, path)
+        self.suffix = ""
+
+    def _check_mpiom(self, varname):
         component = get_model_component_from_varname(varname)
         # print component
         if "mpiom" in component:
-            suffix = "_remap.nc"
+            self.suffix = "_remap.nc"
         else:
-            suffix = ".nc"
-        self._deploy_script(self._script_dir+"/ANALYSIS_make_timmean.sh "+varname, None)
-        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix
-        if sfc and "mpiom" in component:
-            self._deploy_script(self._script_dir+"/ANALYSIS_select_sfc.sh timmean "+varname+" "+component, None)
-            suffix = suffix.replace(".nc", "_sfc.nc")
-        data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix,
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+            self.suffix = ".nc"
+        return True
 
-    def analysis_AMOC_spatial(self):
-        self._deploy_script(self._script_dir+"/ANALYSIS_make_amoc.sh ", None)
-        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix
-        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_MOC_complete_180x40_Sv_timmean.nc",
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
-    
-    def analysis_yearmean(self, varname):
+    def _time_analysis(self, varname, time_operator, sfc=False):
+        mpiom_var = self._check_mpiom(varname)
         component = get_model_component_from_varname(varname)
-        # print component
-        if "mpiom" in component:
-            suffix = "_remap.nc"
+        # What would this file be called on the remote host?
+        if sfc and "_sfc.nc" not in self.suffix:
+            self.suffix.replace(".nc", "_sfc.nc")
+        rfile = self.path + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
+        # What would this file be called locally?
+        lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
+                              custom_io_constants.local_experiment_storehouse)
+        # Try to load from local first:
+        if os.path.exists(lfile):
+            if mpiom_var:
+                fix_mpiom_levels(lfile)
+            return netcdf.netcdf_file(lfile)
+        # Otherwise, make and load:
         else:
-            suffix = ".nc"
-        if "wiso" in component:
-            raise Exception("Please use method wiso_yearmean_echam5 or wiso_yearmean_mpiom instead!")
-        self._deploy_script(self._script_dir+"/ANALYSIS_make_yearmean.sh "+varname, None)
-        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_yearmean"+suffix
-        data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_yearmean"+suffix,
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+            # Make
+            self._deploy_script(self._script_dir +
+                                "/ANALYSIS_make_" + time_operator + ".sh " + varname, None)
+            if sfc:
+                self._deploy_script(self._script_dir +
+                                    "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
+                rfile = rfile.replace(".nc", "_sfc.nc")
+            # Load
+            return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
 
-    def analysis_ymonmean(self, varname):
+    # Start of standard time dependence analysis (monmean, seasmean, etc)
+    def monmean(self, varname, sfc=False):
+        header("Doing monmean of %s for %s" % (self.expid, varname))
+        return self._time_analysis(varname, "monmean", sfc)
+
+    def seasmean(self, varname, sfc=False):
+        header("Doing seasmean of %s for %s" % (self.expid, varname))
+        return self._time_analysis(varname, "seasmean", sfc)
+
+    def yearmean(self, varname, sfc=False):
+        header("Doing yearmean of %s for %s" % (self.expid, varname))
+        return self._time_analysis(varname, "yearmean", sfc)
+
+    def timmean(self, varname, sfc=False):
+        header("Doing timmean of %s for %s" % (self.expid, varname))
+        return self._time_analysis(varname, "timmean", sfc)
+
+    def ymonmean(self, varname, sfc=False):
+        header("Doing ymonmean of %s for %s" % (self.expid, varname))
+        return self._time_analysis(varname, "ymonmean", sfc)
+
+    def yseasmean(self, varname, sfc=False):
+        header("Doing yseasmean of %s for %s" % (self.expid, varname))
+        return self._time_analysis(varname, "yseasmean", sfc)
+    # End of standard analysis toolkit
+
+    # extras:
+    def AMOC_spatial_timmean(self):
+        self._deploy_script(self._script_dir + "/ANALYSIS_make_amoc.sh ", None)
+        return netcdf.netcdf_file(get_remote_data(self.fullpath + "/post/mpiom/" + self.expid + "_mpiom_MOC_complete_180x40_Sv_timmean.nc",
+                                                  copy_to_local=True))
+
+    def insolation(self):
+        self._deploy_script(self._script_dir + "/ANALYSIS_insolation.sh", None)
+        return netcdf.netcdf_file(get_remote_data(self.fullpath + "/post/echam5/" + self.expid + "_echam5_main_srad0d_ymonmean_zonmean.nc",
+                                                  copy_to_local=True))
+
+
+class cosmos_wiso_analysis(cosmos_standard_analysis):
+    """
+    docstring
+    """
+    def _check_wiso(self, varname):
+        if varname in lists.echam5_wiso_list + lists.mpiom_wiso_list:
+            return True
+        else:
+            return False
+
+    def _wiso_analysis(self, varname, time_operator, sfc=False):
         component = get_model_component_from_varname(varname)
-        # print component
-        if "mpiom" in component:
-            suffix = "_remap.nc"
+        mpiom_var = self._check_mpiom(varname)
+        if sfc:
+            self.suffix = self.suffix.replace(".nc", "_sfc.nc")
+        rfile = self.path + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
+        lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
+                              custom_io_constants.local_experiment_storehouse)
+        if os.path.exists(lfile):
+            if mpiom_var:
+                fix_mpiom_levels(lfile)
+            return netcdf.netcdf_file(lfile)
         else:
-            suffix = ".nc"
-        self._deploy_script(self._script_dir+"/ANALYSIS_make_ymonmean.sh "+varname, None)
-        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_ymonmean"+suffix
-        data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_ymonmean"+suffix,
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+            if mpiom_var:
+                if varname is "delta18Osw":
+                    self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_delta18O_"+time_operator+".sh", None)
+                    if sfc:
+                        self._deploy_script(self._script_dir + "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
+                        rfile.replace(".nc", "_sfc.nc")
+                if varname is "delta18Oc":
+                    self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_calcite_"+time_operator+".sh", None)
+                    if sfc:
+                        self._deploy_script(self._script_dir + "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
+                        rfile.replace(".nc", "_sfc.nc")
+                else:
+                    self._time_analysis(varname, time_operator, sfc=sfc)
+                return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
+            else:
+                # some other code that does the appropriate echam analysis
+                self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_echam5_"+time_operator+".sh "+varname, None)
+                return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
 
-    def analysis_yseasmean(self, varname):
-        component = get_model_component_from_varname(varname)
-        # print component
-        if "mpiom" in component:
-            suffix = "_remap.nc"
+    def monmean(self, varname, sfc=False):
+        header("Doing monmean of %s for %s" % (self.expid, varname))
+        if self._check_wiso(varname):
+            return self._wiso_analysis(varname, "monmean", sfc)
         else:
-            suffix = ".nc"
-        self._deploy_script(self._script_dir+"/ANALYSIS_make_yseasmean.sh "+varname, None)
-        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_yseasmean"+suffix
-        data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_yseasmean"+suffix,
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+            return self._time_analysis(varname, "monmean", sfc)
 
-    def analysis_seasmean(self, varname):
-        component = get_model_component_from_varname(varname)
-        # print component
-        if "mpiom" in component:
-            suffix = "_remap.nc"
+    def seasmean(self, varname, sfc=False):
+        header("Doing seasmean of %s for %s" % (self.expid, varname))
+        if self._check_wiso(varname):
+            return self._wiso_analysis(varname, "seasmean", sfc)
         else:
-            suffix = ".nc"
-        self._deploy_script(self._script_dir+"/ANALYSIS_make_seasmean.sh "+varname, None)
-        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix
-        data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix,
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+            return self._time_analysis(varname, "seasmean", sfc)
 
-    def analysis_insolation(self):
-        self._deploy_script(self._script_dir+"/ANALYSIS_insolation.sh", None)
-        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_main_srad0d_ymonmean_zonmean.nc",
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
-                               
-    def _make_wiso_yearmean_echam5(self):
-        self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_yearmean.sh", None)
+    def yearmean(self, varname, sfc=False):
+        header("Doing yearmean of %s for %s" % (self.expid, varname))
+        if self._check_wiso(varname):
+            return self._wiso_analysis(varname, "yearmean", sfc)
+        else:       
+            return self._time_analysis(varname, "yearmean", sfc)
 
-    def _make_wiso_ymonmean_mpiom(self):
-        self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_delta18O_ymonmean.sh", None)
+    def timmean(self, varname, sfc=False):
+        header("Doing timmean of %s for %s" % (self.expid, varname))
+        if self._check_wiso(varname):
+            return self._wiso_analysis(varname, "timmean", sfc)
+        else:       
+            return self._time_analysis(varname, "timmean", sfc)
 
-    def wiso_yearmean_echam5(self, varname):
-        self._make_wiso_yearmean_echam5(self)
-        if get_model_component_from_varname(varname) is not "echam5_wiso":
-            raise Exception(varname+" is not a echam5_wiso variable!")
-        self._deploy_script(self._script_dir+"/WISO_select_yearmean_echam5.sh", varname)
-        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_wiso_"+varname+"_yearmean.nc",
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+    def ymonmean(self, varname, sfc=False):
+        header("Doing ymonmean of %s for %s" % (self.expid, varname))
+        if self._check_wiso(varname):
+            return self._wiso_analysis(varname, "ymonmean", sfc)
+        else:       
+            return self._time_analysis(varname, "ymonmean", sfc)
 
-    def _make_wiso_timmean_echam5(self):
-        self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_timmean.sh", None)
-
-    def wiso_timmean_echam5(self, varname):
-        if get_model_component_from_varname(varname) is not "echam5_wiso":
-            raise Exception(varname+" is not a echam5_wiso variable!")
-        self._make_wiso_timmean_echam5()
-        self._deploy_script(self._script_dir+"/WISO_select_timmean_echam5.sh "+varname, None)
-        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_wiso_"+varname+"_timmean.nc",
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
-
-    def wiso_ymonmean_mpiom(self):
-        self._make_wiso_ymonmean_mpiom()
-        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_wiso_delta18O_ymonmean_remap.nc",
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
-
-    def wiso_ymonmean_mpiom_sfc(self):
-        self._make_wiso_ymonmean_mpiom()
-        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_wiso_delta18O_lev6_ymonmean_remap.nc",
-                               copy_to_local=True)
-        return netcdf.netcdf_file(data)
+    def yseasmean(self, varname, sfc=False):
+        header("Doing yseasmean of %s for %s" % (self.expid, varname))
+        if self._check_wiso(varname):
+            return self._wiso_analysis(varname, "yseasmean", sfc)
+        else:       
+            return self._time_analysis(varname, "yseasmean", sfc)

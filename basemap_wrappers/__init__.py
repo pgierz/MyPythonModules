@@ -99,3 +99,12 @@ def map_carrib(coastlines=True, thisax=None, fill_color=None):
         m.drawmapboundary(fill_color=fill_color)
     return m
         
+def map_natl2(thisax, coastlines=True):
+    # m = Basemap(projection='cyl', llcrnrlat=30, urcrnrlat=90,
+    #             llcrnrlon=-80, urcrnrlon=40, resolution='c', ax=thisax)
+    m = Basemap(projection='cyl', llcrnrlat=30, urcrnrlat=90,
+                llcrnrlon=-110, urcrnrlon=60, resolution='c', ax=thisax)
+
+    if coastlines:
+        m.drawcoastlines(linewidth=0.33)
+    return m

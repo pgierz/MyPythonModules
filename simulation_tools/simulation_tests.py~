@@ -1,8 +1,0 @@
-import simulation_tools
-
-test_simulation = simulation_tools.cosmos_simulation("pgierz@stan1:/ace/user/pgierz/cosmos-aso-wiso/LIG-Tx10")
-
-
-def test_names():
-    assert test_simulation.path == "pgierz@stan1:/ace/user/pgierz/cosmos-aso-wiso/LIG-Tx10"
-    assert test_simulation.expid == "LIG-Tx10"

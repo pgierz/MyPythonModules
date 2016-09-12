@@ -50,5 +50,6 @@ mpiom_wiso_list = ["scal_lon",
                    "h2o18_ice",    
                    "hDo16_ice",    
                    "h2o16_ice",
-                   "delta18Osw"]
+                   "delta18Osw",
+                   "delta18Oc"]
 

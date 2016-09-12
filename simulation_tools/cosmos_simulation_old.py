@@ -1,5 +1,6 @@
 from custom_io import get_remote_data
-from parsing_tools import get_model_component_from_varname
+from scipy.io import netcdf
+from parsing_tools import get_model_component_from_varname, valid_components
 import os
 
 
@@ -42,10 +43,9 @@ class cosmos_simulation(object):
             command = 'ssh ' + self.user + "@" + self.host + ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
                       self.path + '/analysis_scripts; bash -sl" < ' + \
                       os.path.realpath(script)    
-        # print command
         os.system(command)
 
-    def analysis_timmean(self, varname):
+    def analysis_timmean(self, varname, sfc=False):
         component = get_model_component_from_varname(varname)
         # print component
         if "mpiom" in component:
@@ -54,10 +54,20 @@ class cosmos_simulation(object):
             suffix = ".nc"
         self._deploy_script(self._script_dir+"/ANALYSIS_make_timmean.sh "+varname, None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix
+        if sfc and "mpiom" in component:
+            self._deploy_script(self._script_dir+"/ANALYSIS_select_sfc.sh timmean "+varname+" "+component, None)
+            suffix = suffix.replace(".nc", "_sfc.nc")
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix,
                                copy_to_local=True)
-        return data
+        return netcdf.netcdf_file(data)
 
+    def analysis_AMOC_spatial(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_make_amoc.sh ", None)
+        # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix
+        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_MOC_complete_180x40_Sv_timmean.nc",
+                               copy_to_local=True)
+        return netcdf.netcdf_file(data)
+    
     def analysis_yearmean(self, varname):
         component = get_model_component_from_varname(varname)
         # print component
@@ -65,11 +75,13 @@ class cosmos_simulation(object):
             suffix = "_remap.nc"
         else:
             suffix = ".nc"
+        if "wiso" in component:
+            raise Exception("Please use method wiso_yearmean_echam5 or wiso_yearmean_mpiom instead!")
         self._deploy_script(self._script_dir+"/ANALYSIS_make_yearmean.sh "+varname, None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_yearmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_yearmean"+suffix,
                                copy_to_local=True)
-        return data
+        return netcdf.netcdf_file(data)
 
     def analysis_ymonmean(self, varname):
         component = get_model_component_from_varname(varname)
@@ -82,7 +94,7 @@ class cosmos_simulation(object):
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_ymonmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_ymonmean"+suffix,
                                copy_to_local=True)
-        return data
+        return netcdf.netcdf_file(data)
 
     def analysis_yseasmean(self, varname):
         component = get_model_component_from_varname(varname)
@@ -95,7 +107,7 @@ class cosmos_simulation(object):
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_yseasmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_yseasmean"+suffix,
                                copy_to_local=True)
-        return data
+        return netcdf.netcdf_file(data)
 
     def analysis_seasmean(self, varname):
         component = get_model_component_from_varname(varname)
@@ -108,5 +120,49 @@ class cosmos_simulation(object):
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix,
                                copy_to_local=True)
-        return data
+        return netcdf.netcdf_file(data)
 
+    def analysis_insolation(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_insolation.sh", None)
+        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_main_srad0d_ymonmean_zonmean.nc",
+                               copy_to_local=True)
+        return netcdf.netcdf_file(data)
+                               
+    def _make_wiso_yearmean_echam5(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_yearmean.sh", None)
+
+    def _make_wiso_ymonmean_mpiom(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_delta18O_ymonmean.sh", None)
+
+    def wiso_yearmean_echam5(self, varname):
+        self._make_wiso_yearmean_echam5(self)
+        if get_model_component_from_varname(varname) is not "echam5_wiso":
+            raise Exception(varname+" is not a echam5_wiso variable!")
+        self._deploy_script(self._script_dir+"/WISO_select_yearmean_echam5.sh", varname)
+        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_wiso_"+varname+"_yearmean.nc",
+                               copy_to_local=True)
+        return netcdf.netcdf_file(data)
+
+    def _make_wiso_timmean_echam5(self):
+        self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_timmean.sh", None)
+
+    def wiso_timmean_echam5(self, varname):
+        if get_model_component_from_varname(varname) is not "echam5_wiso":
+            raise Exception(varname+" is not a echam5_wiso variable!")
+        self._make_wiso_timmean_echam5()
+        self._deploy_script(self._script_dir+"/WISO_select_timmean_echam5.sh "+varname, None)
+        data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_wiso_"+varname+"_timmean.nc",
+                               copy_to_local=True)
+        return netcdf.netcdf_file(data)
+
+    def wiso_ymonmean_mpiom(self):
+        self._make_wiso_ymonmean_mpiom()
+        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_wiso_delta18O_ymonmean_remap.nc",
+                               copy_to_local=True)
+        return netcdf.netcdf_file(data)
+
+    def wiso_ymonmean_mpiom_sfc(self):
+        self._make_wiso_ymonmean_mpiom()
+        data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_wiso_delta18O_lev6_ymonmean_remap.nc",
+                               copy_to_local=True)
+        return netcdf.netcdf_file(data)

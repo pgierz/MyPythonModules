@@ -223,14 +223,19 @@ def plot_var_1D_timeseries_from_ncdf_file(varname, RUN, ax, plotlev=None, runmea
 
 def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, ovarname=None, **cfopts):
     if ovarname is None:
-        ovarname=varname
+        ovarname = varname
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
         var = np.ma.masked_equal(
             RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
     else:
         var = RUN.variables[varname].data.squeeze()
-    var = var[ts, :, :]
+    if (type(ts) is int) or (type(ts) is float):
+        var = var[ts, :, :]
+    elif type(ts) is list:
+        var = var[ts, :, :].mean(axis=0)
+    else:
+        print "Logic error, check inputs"
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var, lon = shiftgrid(180., var, lon, start=False)
@@ -261,28 +266,28 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
         ctl = CTL.variables[ovarname].data.squeeze()
     var = var.squeeze()
     ctl = ctl.squeeze()
-    print "Beginning of selection:"
-    print "Var has shape:"
-    print var.shape
-    print "Ctl has shape:"
-    print ctl.shape
-    print "Selecting based upon:" 
-    print type(ts)
+    #print "Beginning of selection:"
+    #print "Var has shape:"
+    #print var.shape
+    #print "Ctl has shape:"
+    #print ctl.shape
+    #print "Selecting based upon:" 
+    #print type(ts)
     if (type(ts) is int) or (type(ts) is float):
-        print "selecting timestep!"
+        #print "selecting timestep!"
         var = var[ts, :, :]
         if len(ctl.shape) != 2:
             ctl = ctl[ts, :, :]
     elif type(ts) is list:
-        print "making mean!"
+        #print "making mean!"
         var = var[ts, :, :].mean(axis=0)
-        # print var
+        # #print var
         ctl = ctl[ts, :, :].mean(axis=0)
-        # print ctl
+        # #print ctl
     else:
         print "Logic error! Check your inputs"
-    print var.shape
-    print ctl.shape
+    #print var.shape
+    #print ctl.shape
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
@@ -294,6 +299,48 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
                      extend='both',
                      **cfopts)
     return cf
+
+
+def plot_contourline_anom_from_ncdf_file_timestep(varname, ts, clevel, file, cfile, mm, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname = varname
+    RUN = file
+    CTL = cfile
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
+    else:
+        ctl = CTL.variables[ovarname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    if (type(ts) is int) or (type(ts) is float):
+        var = var[ts, :, :]
+        if len(ctl.shape) != 2:
+            ctl = ctl[ts, :, :]
+    elif type(ts) is list:
+        var = var[ts, :, :].mean(axis=0)
+        ctl = ctl[ts, :, :].mean(axis=0)
+    else:
+        print "Logic error! Check your inputs"
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contour(lons, lats, var, latlon=True,
+                    extend='both', levels=clevel,
+                    linewidth=3.0,
+                    **cfopts)
+    return cf
+
 
 def plot_var_anom_from_ncdf_file_timestep_depth(varname, ts, depth, file, cfile, mm, ovarname=None, **cfopts):
     if ovarname is None:
@@ -313,35 +360,35 @@ def plot_var_anom_from_ncdf_file_timestep_depth(varname, ts, depth, file, cfile,
         ctl = CTL.variables[ovarname].data.squeeze()
     var = var.squeeze()
     ctl = ctl.squeeze()
-    print "Beginning of selection:"
-    print "Var has shape:"
-    print var.shape
-    print "Ctl has shape:"
-    print ctl.shape
-    print "Selecting based upon:"
-    print "Timestep:"
-    print type(ts)
-    print "Depth:"
-    print type(depth)
+    #print "Beginning of selection:"
+    #print "Var has shape:"
+    #print var.shape
+    #print "Ctl has shape:"
+    #print ctl.shape
+    #print "Selecting based upon:"
+    #print "Timestep:"
+    #print type(ts)
+    #print "Depth:"
+    #print type(depth)
     if ((type(ts) is int) or (type(ts) is float) and (type(depth) is int) or (type(depth) is float)):
-        print "selecting timestep and depth!"
+        #print "selecting timestep and depth!"
         var = var[ts, depth, :, :]
         if len(ctl.shape) != 2:
             ctl = ctl[ts, depth, :, :]
     if type(ts) is list:
-        print "making mean of timesteps!"
+        #print "making mean of timesteps!"
         var = var[ts, :, :, :].mean(axis=0).squeeze()
-        # print var
+        # #print var
         ctl = ctl[ts, :, :, :].mean(axis=0).squeeze()
-        # print ctl
+        # #print ctl
     if type(depth) is list:
-        print "making mean of depths!"
+        #print "making mean of depths!"
         var = var[depth, :, :].mean(axis=0).squeeze()
-        # print var
+        # #print var
         ctl = ctl[depth, :, :].mean(axis=0).squeeze()
-        # print ctl
-    print var.shape
-    print ctl.shape
+        # #print ctl
+    #print var.shape
+    #print ctl.shape
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
