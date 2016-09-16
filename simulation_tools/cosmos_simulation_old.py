@@ -10,7 +10,7 @@ class cosmos_simulation(object):
 
     Paul J. Gierz, Sat Feb  6 13:37:00 2016
     """
-    def __init__(self, path):
+    def __init__(self, path, tmp=False):
         super(cosmos_simulation, self).__init__()
         self._script_dir = "/Users/pgierz/Research/scripts/"
         self.fullpath = path
@@ -18,6 +18,11 @@ class cosmos_simulation(object):
         self.host = path.split(":")[0].split("@")[1]
         self.path = path.split(":")[1]
         self.expid = path.split(":")[1].split("/")[-1]
+        self.tmp = tmp
+        if self.tmp:
+            self.ctl = False
+        else:
+            self.ctl = True
 
     def _deploy_script(self, script, args, needs_exp=False):
         """This private method takes a script given by the arg script and
@@ -58,14 +63,14 @@ class cosmos_simulation(object):
             self._deploy_script(self._script_dir+"/ANALYSIS_select_sfc.sh timmean "+varname+" "+component, None)
             suffix = suffix.replace(".nc", "_sfc.nc")
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix,
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def analysis_AMOC_spatial(self):
         self._deploy_script(self._script_dir+"/ANALYSIS_make_amoc.sh ", None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_timmean"+suffix
         data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_MOC_complete_180x40_Sv_timmean.nc",
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
     
     def analysis_yearmean(self, varname):
@@ -80,7 +85,7 @@ class cosmos_simulation(object):
         self._deploy_script(self._script_dir+"/ANALYSIS_make_yearmean.sh "+varname, None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_yearmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_yearmean"+suffix,
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def analysis_ymonmean(self, varname):
@@ -93,7 +98,7 @@ class cosmos_simulation(object):
         self._deploy_script(self._script_dir+"/ANALYSIS_make_ymonmean.sh "+varname, None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_ymonmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_ymonmean"+suffix,
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def analysis_yseasmean(self, varname):
@@ -106,7 +111,7 @@ class cosmos_simulation(object):
         self._deploy_script(self._script_dir+"/ANALYSIS_make_yseasmean.sh "+varname, None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_yseasmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_yseasmean"+suffix,
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def analysis_seasmean(self, varname):
@@ -119,13 +124,13 @@ class cosmos_simulation(object):
         self._deploy_script(self._script_dir+"/ANALYSIS_make_seasmean.sh "+varname, None)
         # print self.fullpath+"/post/"+component+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix
         data = get_remote_data(self.fullpath+"/post/"+component.split("_")[0]+"/"+self.expid+"_"+component+"_"+varname+"_seasmean"+suffix,
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def analysis_insolation(self):
         self._deploy_script(self._script_dir+"/ANALYSIS_insolation.sh", None)
         data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_main_srad0d_ymonmean_zonmean.nc",
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
                                
     def _make_wiso_yearmean_echam5(self):
@@ -140,7 +145,7 @@ class cosmos_simulation(object):
             raise Exception(varname+" is not a echam5_wiso variable!")
         self._deploy_script(self._script_dir+"/WISO_select_yearmean_echam5.sh", varname)
         data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_wiso_"+varname+"_yearmean.nc",
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def _make_wiso_timmean_echam5(self):
@@ -152,17 +157,17 @@ class cosmos_simulation(object):
         self._make_wiso_timmean_echam5()
         self._deploy_script(self._script_dir+"/WISO_select_timmean_echam5.sh "+varname, None)
         data = get_remote_data(self.fullpath+"/post/echam5/"+self.expid+"_echam5_wiso_"+varname+"_timmean.nc",
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def wiso_ymonmean_mpiom(self):
         self._make_wiso_ymonmean_mpiom()
         data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_wiso_delta18O_ymonmean_remap.nc",
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)
 
     def wiso_ymonmean_mpiom_sfc(self):
         self._make_wiso_ymonmean_mpiom()
         data = get_remote_data(self.fullpath+"/post/mpiom/"+self.expid+"_mpiom_wiso_delta18O_lev6_ymonmean_remap.nc",
-                               copy_to_local=True)
+                               copy_to_local=self.ctl)
         return netcdf.netcdf_file(data)

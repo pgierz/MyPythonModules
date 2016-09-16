@@ -40,7 +40,7 @@ def _set_up_client(host, user):
     return client
 
 
-def _copy_remote_file(rfile, host, client):
+def _copy_remote_file(rfile, host, client, tmp=False):
     lfile = rfile.replace(constants.replace_path_dict[
                           host], constants.local_experiment_storehouse)
     if os.path.exists(lfile):
@@ -62,20 +62,23 @@ def _copy_remote_file(rfile, host, client):
                  constants.remote_dump + os.path.basename(rfile),
                  callback=_progress_cb)
         pbar.finish()
-        path = os.path.dirname(lfile)
-        try:
-            os.makedirs(path)
-        except OSError:
-            if not os.path.isdir(path):
-                raise
-        shutil.move(constants.remote_dump + "/" + os.path.basename(rfile),
-                    lfile)
-        return lfile
+        if not tmp:
+            path = os.path.dirname(lfile)
+            try:
+                os.makedirs(path)
+            except OSError:
+                if not os.path.isdir(path):
+                    raise
+            shutil.move(constants.remote_dump + "/" + os.path.basename(rfile),
+                        lfile)
+            return lfile
+        else:
+            return constants.remote_dump + "/" + os.path.basename(rfile)
 
 
 # Main Function
 def get_remote_data(filepath, copy_to_local=None):
-    copy_to_local = copy_to_local or os.path.exists(constants.local_experiment_storehouse)
+    copy_to_local = copy_to_local and os.path.exists(constants.local_experiment_storehouse)
     user = filepath.split(':')[0].split('@')[0]
     host = filepath.split(':')[0].split('@')[1]
     rfile = filepath.split(':')[1]
@@ -83,6 +86,6 @@ def get_remote_data(filepath, copy_to_local=None):
     if copy_to_local:
         lfile = _copy_remote_file(rfile, host, client)
     else:
-        lfile = client.open_sftp().file(rfile)
+        lfile = _copy_remote_file(rfile, host, client, tmp=True)
     client.close()
     return lfile
