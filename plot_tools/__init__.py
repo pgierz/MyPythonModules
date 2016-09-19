@@ -264,7 +264,7 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
             CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
     else:
         ctl = CTL.variables[ovarname].data.squeeze()
-    var = var.squeeze()
+    var = var.squeeze()    
     ctl = ctl.squeeze()
     #print "Beginning of selection:"
     #print "Var has shape:"
@@ -280,6 +280,7 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
             ctl = ctl[ts, :, :]
     elif type(ts) is list:
         #print "making mean!"
+        print var.shape
         var = var[ts, :, :].mean(axis=0)
         # #print var
         ctl = ctl[ts, :, :].mean(axis=0)

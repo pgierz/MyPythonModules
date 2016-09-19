@@ -96,9 +96,10 @@ class cosmos_standard_analysis(_cosmos_simulation):
         # print component
         if "mpiom" in component:
             self.suffix = "_remap.nc"
+            return True
         else:
             self.suffix = ".nc"
-        return True
+            return False
 
     def _time_analysis(self, varname, time_operator, sfc=False):
         mpiom_var = self._check_mpiom(varname)
@@ -177,18 +178,22 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
 
     def _wiso_analysis(self, varname, time_operator, sfc=False):
         component = get_model_component_from_varname(varname)
+        debug(component)
         mpiom_var = self._check_mpiom(varname)
         if sfc:
             self.suffix = self.suffix.replace(".nc", "_sfc.nc")
         rfile = self.path + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
         lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
                               custom_io_constants.local_experiment_storehouse)
+        debug(lfile)
         if os.path.exists(lfile):
             if mpiom_var:
                 fix_mpiom_levels(lfile)
             return netcdf.netcdf_file(lfile)
         else:
+            debug("In first else")
             if mpiom_var:
+                debug("in mpiom_var")
                 if varname is "delta18Osw":
                     self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_delta18O_"+time_operator+".sh", None)
                     if sfc:
@@ -203,6 +208,7 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
                     self._time_analysis(varname, time_operator, sfc=sfc)
                 return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
             else:
+                debug ("Standard analysis for echam")
                 # some other code that does the appropriate echam analysis
                 self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_echam5_"+time_operator+".sh "+varname, None)
                 return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
