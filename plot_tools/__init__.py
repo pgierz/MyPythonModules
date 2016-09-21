@@ -201,6 +201,61 @@ def plot_var_anom_from_ncdf_file(varname, file, cfile, mm, factor=1, ovarname=No
     return cf
 
 
+def plot_var_dual_anom_from_ncdf_file(varname, file1, cfile1, file2, cfile2, mm, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname = varname
+    ################################################################################
+    RUN = file1
+    CTL = cfile1
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
+    else:
+        ctl = CTL.variables[ovarname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    var1 = var
+    ################################################################################
+    RUN = file2
+    CTL = cfile2
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
+    else:
+        ctl = CTL.variables[ovarname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    var2 = var
+    ################################################################################
+    var = var1 - var2
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
+    return cf
 
 
 def plot_var_1D_timeseries_from_ncdf_file(varname, RUN, ax, plotlev=None, runmean_interval=None, **pltopts):
@@ -294,6 +349,81 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
     var = var - ctl
     var, lon = shiftgrid(180., var, lon, start=False)
     var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lons, lats, var, latlon=True,
+                     extend='both',
+                     **cfopts)
+    return cf
+
+
+def plot_var_dual_anom_from_ncdf_file_timestep(varname, ts, file1, cfile1, file2, cfile2, mm, ovarname=None, **cfopts):
+    if ovarname is None:
+        ovarname = varname
+    ################################################################################
+    RUN = file1
+    CTL = cfile1
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
+    else:
+        ctl = CTL.variables[ovarname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    if (type(ts) is int) or (type(ts) is float):
+        var = var[ts, :, :]
+        if len(ctl.shape) != 2:
+            ctl = ctl[ts, :, :]
+    elif type(ts) is list:
+        var = var[ts, :, :].mean(axis=0)
+        ctl = ctl[ts, :, :].mean(axis=0)
+    else:
+        print "Logic error! Check your inputs"
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    var1 = var
+    ################################################################################
+    RUN = file2
+    CTL = cfile2
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+
+    if hasattr(CTL.variables[ovarname], "_FillValue"):
+        ctl = np.ma.masked_equal(
+            CTL.variables[ovarname].data.squeeze(), CTL.variables[ovarname]._FillValue)
+    else:
+        ctl = CTL.variables[ovarname].data.squeeze()
+    var = var.squeeze()
+    ctl = ctl.squeeze()
+    if (type(ts) is int) or (type(ts) is float):
+        var = var[ts, :, :]
+        if len(ctl.shape) != 2:
+            ctl = ctl[ts, :, :]
+    elif type(ts) is list:
+        var = var[ts, :, :].mean(axis=0)
+        ctl = ctl[ts, :, :].mean(axis=0)
+    else:
+        print "Logic error! Check your inputs"
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var = var - ctl
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    var2 = var
+    ################################################################################
+    var = var1 - var2
     mm.drawmapboundary(fill_color='gray')
     lons, lats = np.meshgrid(lon, lat)
     cf = mm.contourf(lons, lats, var, latlon=True,
