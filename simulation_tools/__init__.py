@@ -6,7 +6,7 @@ import cdo
 
 CDO = cdo.Cdo()
 
-GLOBAL_DEBUG = True
+GLOBAL_DEBUG = False
 
 
 class bcolors:
