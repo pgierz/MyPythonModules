@@ -119,12 +119,14 @@ class cosmos_standard_analysis(_cosmos_simulation):
         # Otherwise, make and load:
         else:
             # Make
+            print "Making file!"
             self._deploy_script(self._script_dir +
                                 "/ANALYSIS_make_" + time_operator + ".sh " + varname, None)
             if sfc:
                 self._deploy_script(self._script_dir +
                                     "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
                 rfile = rfile.replace(".nc", "_sfc.nc")
+            print "Done!"
             # Load
             return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
 
