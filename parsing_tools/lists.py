@@ -36,7 +36,8 @@ echam5_wiso_list = ["wisoaprt_d",
                     "runtoc",
                     "wisosw_d",
                     "temp2",
-                    "tsurf"]
+                    "tsurf",
+                    "ptemp"]
 
 mpiom_wiso_list = ["scal_lon",    
                    "scal_lat",    
@@ -51,5 +52,6 @@ mpiom_wiso_list = ["scal_lon",
                    "hDo16_ice",    
                    "h2o16_ice",
                    "delta18Osw",
-                   "delta18Oc"]
+                   "delta18Oc",
+                   "delta18Oshackleton"]
 

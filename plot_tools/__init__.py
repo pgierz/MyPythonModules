@@ -90,6 +90,26 @@ def _find_nearest_idx(array, value):
     return idx
 
 
+def plot_contour_from_ncdf_file(varname, file, mm, factor=1, **cfopts):
+    RUN = file
+    if hasattr(RUN.variables[varname], "_FillValue"):
+        var = np.ma.masked_equal(
+            RUN.variables[varname].data.squeeze(), RUN.variables[varname]._FillValue)
+    else:
+        var = RUN.variables[varname].data.squeeze()
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    var = var * factor
+    cf = mm.contour(lons, lats, var, latlon=True,
+                    extend='both',
+                    **cfopts)
+    return cf
+
+
 def plot_var_from_ncdf_file(varname, file, mm, factor=1, **cfopts):
     RUN = file
     if hasattr(RUN.variables[varname], "_FillValue"):
@@ -352,7 +372,6 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
     mm.drawmapboundary(fill_color='gray')
     lons, lats = np.meshgrid(lon, lat)
     cf = mm.contourf(lons, lats, var, latlon=True,
-                     extend='both',
                      **cfopts)
     return cf
 
@@ -688,6 +707,35 @@ def plot_insolation(ax, run, ctl, cb=False, **kwargs):
     ax.set_xlim(1, 13)
     ax.yaxis.set_ticks((-85, -45, 0, 45, 85))
     ax.yaxis.set_ticklabels((-90, -45, 0, 45, 90))
+    return cf
+
+
+def plot_overturning(fin, ax, **cfopts):
+    dat = fin.variables["var101"].data
+    if hasattr(fin.variables["var101"], 'missing_value'):
+        # Mask out missing values based on what netcdf thinks the missing value is!
+        dat = np.ma.masked_equal(dat, fin.variables["var101"].missing_value)
+    elif hasattr(fin.variables["var101"], "_FillValue"):
+        dat = np.ma.masked_equal(dat, fin.variables["var101"]._FillValue)
+    else:
+        # Guess the standard value
+        dat = np.ma.masked_equal(dat, -8.9999999e+33)
+    dat = dat.squeeze()
+    lat = fin.variables['lat'].data.squeeze()
+    depth = fin.variables['lev'].data.squeeze()
+    # Make background gray
+    ax.patch.set_color('.25')
+    cf = ax.contourf(lat, depth*-1, dat,
+                     extend='both', **cfopts)
+    cl = ax.contour(lat, depth*-1, dat,
+                    levels=cfopts["levels"],
+                    colors="black",
+                    extend='both')
+    # Label contour lines:
+    matplotlib.pyplot.clabel(cl, inline=1, fmt='%1.1f')
+    ax.set_xlim(-30, 90)
+    ax.set_xlabel("Latitude (deg)")
+    ax.set_ylabel("Depth (m)")
     return cf
 
 

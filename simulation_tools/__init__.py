@@ -185,6 +185,7 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
         if sfc:
             self.suffix = self.suffix.replace(".nc", "_sfc.nc")
         rfile = self.path + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
+        # print rfile
         lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
                               custom_io_constants.local_experiment_storehouse)
         debug(lfile)
@@ -206,8 +207,15 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
                     if sfc:
                         self._deploy_script(self._script_dir + "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
                         rfile.replace(".nc", "_sfc.nc")
+                if varname is "delta18Oshackleton":
+                    self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_mpiom_shakleton_"+time_operator+".sh", None)
+                    if sfc:
+                        self._deploy_script(self._script_dir + "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
+                        rfile.replace(".nc", "_sfc.nc")
+
                 else:
                     self._time_analysis(varname, time_operator, sfc=sfc)
+                print "PG:", self.user+"@"+self.host+":"+rfile
                 return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
             else:
                 debug ("Standard analysis for echam")
