@@ -22,11 +22,11 @@ class bcolors:
 
 def debug(s):
     if GLOBAL_DEBUG:
-        print bcolors.FAIL + "DEBUG: "+s+bcolors.ENDC
+        print(bcolors.FAIL + "DEBUG: "+s+bcolors.ENDC)
 
 
 def header(s):
-    print bcolors.HEADER+s+bcolors.ENDC
+    print(bcolors.HEADER+s+bcolors.ENDC)
 
     
 def fix_mpiom_levels(fname):
@@ -119,14 +119,14 @@ class cosmos_standard_analysis(_cosmos_simulation):
         # Otherwise, make and load:
         else:
             # Make
-            print "Making file!"
+            print("Making file!")
             self._deploy_script(self._script_dir +
                                 "/ANALYSIS_make_" + time_operator + ".sh " + varname, None)
             if sfc:
                 self._deploy_script(self._script_dir +
                                     "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
                 rfile = rfile.replace(".nc", "_sfc.nc")
-            print "Done!"
+            print("Done!")
             # Load
             return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
 
@@ -160,6 +160,11 @@ class cosmos_standard_analysis(_cosmos_simulation):
     def AMOC_spatial_timmean(self):
         self._deploy_script(self._script_dir + "/ANALYSIS_make_amoc.sh ", None)
         return netcdf.netcdf_file(get_remote_data(self.fullpath + "/post/mpiom/" + self.expid + "_mpiom_MOC_complete_180x40_Sv_timmean.nc",
+                                                  copy_to_local=True))
+
+    def AMOC_timseries_45N(self):
+        self._deploy_script(self._script_dir + "/ANALYSIS_make_amoc.sh ", None)
+        return netcdf.netcdf_file(get_remote_data(self.fullpath + "/post/mpiom/" + self.expid + "_mpiom_MOC_complete_180x40_Sv_index_45-60N.nc",
                                                   copy_to_local=True))
 
     def insolation(self):
@@ -215,7 +220,7 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
 
                 else:
                     self._time_analysis(varname, time_operator, sfc=sfc)
-                print "PG:", self.user+"@"+self.host+":"+rfile
+                print("PG:", self.user+"@"+self.host+":"+rfile)
                 return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
             else:
                 debug ("Standard analysis for echam")
