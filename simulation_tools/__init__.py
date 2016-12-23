@@ -28,14 +28,24 @@ def debug(s):
 def header(s):
     print(bcolors.HEADER+s+bcolors.ENDC)
 
-    
+
 def fix_mpiom_levels(fname):
     if CDO.nlevel(input=fname)[0] == "40":
         if not CDO.showlevel(input=fname)[0].split(" ")[0] == "6":
             os.system("cdo invertlev "+fname+" tmp")
             os.system("mv tmp "+fname)
 
-            
+
+def old_simulation_header(my_fn):
+    def split_old_name_style(remote_address):
+        user = remote_address.split(":")[0].split("@")[0]
+        host = remote_address.split(":")[0].split("@")[1]
+        path = remote_address.split(":")[1]
+        expid = path.split("/")[-1]
+        return my_fn(user, host, path, expid)
+    return split_old_name_style
+
+
 class _cosmos_simulation(object):
     """
     # TODO I need to write some documentation for this
@@ -43,14 +53,21 @@ class _cosmos_simulation(object):
     Paul J. Gierz, Sat Feb  6 13:37:00 2016
     """
 
-    def __init__(self, path):
-        super(_cosmos_simulation, self).__init__()
+    def __init__(self, user, host, path, expid):
         self._script_dir = "/Users/pgierz/Research/scripts/"
-        self.fullpath = path
-        self.user = path.split(":")[0].split("@")[0]
-        self.host = path.split(":")[0].split("@")[1]
-        self.path = path.split(":")[1]
-        self.expid = path.split(":")[1].split("/")[-1]
+        self.fullpath = user+"@"+host":"+path+"/"+expid
+        self.user = user 
+        self.host = host
+        self.path = path
+        self.expid = expid
+
+    @classmethod
+    def from_old_init(cls, remote_address):
+        user = remote_address.split(":")[0].split("@")[0]
+        host = remote_address.split(":")[0].split("@")[1]
+        path = remote_address.split(":")[1]
+        expid = path.split("/")[-1]       
+        return cls(user, host, path, expid)
 
     def _deploy_script(self, script, args, needs_exp=False):
         """This private method takes a script given by the arg script and
@@ -60,25 +77,23 @@ class _cosmos_simulation(object):
 
         Paul J. Gierz, Sat Feb  6 13:57:51 2016
         """
-        sendargs = []
-        if needs_exp:
-            for a in range(len(args)):
-                sendargs.append(self.path + "/" +
-                                args[a].replace("@EXPID@", self.expid))
-        else:
-            sendargs = args
+        sendargs = [self.path+"/"+args[a].replace("@EXPID@", self.expid) if needs_exp else *args for a in range(len(args))]
+
+        # sendargs = []
+        # if needs_exp:
+        #     for a in range(len(args)):
+        #         sendargs.append(self.path + "/" +
+        #                         args[a].replace("@EXPID@", self.expid))
+        # else:
+        #     sendargs = args
 
         # If script is link, expand to the real thing:
+        command = "ssh -T" + self.user + "@" + self.host + \
+                  ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
+                  self.path + '/analysis_scripts; bash -sl" < ' + \
+                  os.path.realpath(script) 
         if args is not None:
-            command = 'ssh -T ' + self.user + "@" + self.host + \
-                      ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
-                      self.path + '/analysis_scripts; bash -sl" < ' + \
-                      os.path.realpath(script) + " " + " ".join(sendargs)
-        else:
-            command = 'ssh -T ' + self.user + "@" + self.host + \
-                      ' "mkdir -p ' + self.path + '/analysis_scripts; cd ' + \
-                      self.path + '/analysis_scripts; bash -sl" < ' + \
-                      os.path.realpath(script)
+            command = command + " " + " ".join(sendargs)
         os.system(command)
 
 
