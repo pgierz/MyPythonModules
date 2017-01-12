@@ -46,3 +46,4 @@ def compute_significance(file1, file2, var1, var2):
                 sig_mask[j, i] = 1
             else:
                 sig_mask[j, i] = 0  # float("NaN")
+    # TODO: This returns nothing...?

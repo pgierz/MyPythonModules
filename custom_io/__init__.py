@@ -12,7 +12,7 @@ import progressbar
 import paramiko
 import os
 import shutil
-import custom_io_constants as constants
+import custom_io.custom_io_constants as constants
 
 # Make sure the remote_dump exists
 if not os.path.exists(constants.remote_dump):

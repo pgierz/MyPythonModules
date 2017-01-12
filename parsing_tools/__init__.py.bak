@@ -5,7 +5,7 @@ valid_components = ["echam5_wiso", "echam5_main", "mpiom_main", "mpiom_wiso"]
 
 
 def get_model_component_from_varname(varname):
-    if "REFDIR" in list(os.environ.keys()):
+    if "REFDIR" in os.environ.keys():
         REFDIR = os.environ["REFDIR"]
     else:
         if socket.gethostname() == "rayo3":
@@ -15,7 +15,7 @@ def get_model_component_from_varname(varname):
         elif socket.gethostname() == "stan1":
             REFDIR = "/home/ace/pgierz/reference_stuff"
         else:
-            print("REFDIR not found, recloning...")
+            print "REFDIR not found, recloning..."
             os.system("git clone git@bitbucket.org:pgierz/reference_stuff.git")
             REFDIR = "./reference_stuff/"
     with open(REFDIR + "/echam5_variables.txt", "r") as f:
@@ -47,7 +47,7 @@ def get_model_component_from_varname(varname):
     elif varname in mpiom_wiso_varlist:
         return "mpiom_wiso"
     else:
-        print("parsing_tools.get_model_component_from_varname (in __init__) does not know this variable!")
+        print "parsing_tools.get_model_component_from_varname (in __init__) does not know this variable!"
         return None
 
     

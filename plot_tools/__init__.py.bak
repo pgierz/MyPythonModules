@@ -54,12 +54,12 @@ def mask_out_zeros(dat, tolerance, verbose=False):
             dat, percent * (dat.max() - dat.min()), -1 * percent * (dat.max() - dat.min()))
         toleranceprint = percent * (dat.max() - dat.min())
     else:
-        print("Something went wrong, nothing masked!")
-        print(type(tolerance))
+        print "Something went wrong, nothing masked!"
+        print type(tolerance)
     if verbose:
-        print("PG: percent was:", percent)
-        print("PG: Range was: ", (dat.max() - dat.min()))
-        print("PG: Masked out ", sum(sum(dat.mask)), "values that are inside of ", toleranceprint)
+        print "PG: percent was:", percent
+        print "PG: Range was: ", (dat.max() - dat.min())
+        print "PG: Masked out ", sum(sum(dat.mask)), "values that are inside of ", toleranceprint
         # PG: I don't know why this needs to be a double sum, for
         # some reason sum(dat.mask) produces a list
     return dat, dat.mask
@@ -310,7 +310,7 @@ def plot_var_from_ncdf_file_timestep(varname, ts, file, mm, ovarname=None, **cfo
     elif type(ts) is list:
         var = var[ts, :, :].mean(axis=0)
     else:
-        print("Logic error, check inputs")
+        print "Logic error, check inputs"
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var, lon = shiftgrid(180., var, lon, start=False)
@@ -355,13 +355,13 @@ def plot_var_anom_from_ncdf_file_timestep(varname, ts, file, cfile, mm, ovarname
             ctl = ctl[ts, :, :]
     elif type(ts) is list:
         #print "making mean!"
-        print(var.shape)
+        print var.shape
         var = var[ts, :, :].mean(axis=0)
         # #print var
         ctl = ctl[ts, :, :].mean(axis=0)
         # #print ctl
     else:
-        print("Logic error! Check your inputs")
+        print "Logic error! Check your inputs"
     #print var.shape
     #print ctl.shape
     lon = RUN.variables['lon'].data.squeeze()
@@ -403,7 +403,7 @@ def plot_var_dual_anom_from_ncdf_file_timestep(varname, ts, file1, cfile1, file2
         var = var[ts, :, :].mean(axis=0)
         ctl = ctl[ts, :, :].mean(axis=0)
     else:
-        print("Logic error! Check your inputs")
+        print "Logic error! Check your inputs"
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
@@ -434,7 +434,7 @@ def plot_var_dual_anom_from_ncdf_file_timestep(varname, ts, file1, cfile1, file2
         var = var[ts, :, :].mean(axis=0)
         ctl = ctl[ts, :, :].mean(axis=0)
     else:
-        print("Logic error! Check your inputs")
+        print "Logic error! Check your inputs"
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
@@ -477,7 +477,7 @@ def plot_contourline_anom_from_ncdf_file_timestep(varname, ts, clevel, file, cfi
         var = var[ts, :, :].mean(axis=0)
         ctl = ctl[ts, :, :].mean(axis=0)
     else:
-        print("Logic error! Check your inputs")
+        print "Logic error! Check your inputs"
     lon = RUN.variables['lon'].data.squeeze()
     lat = RUN.variables['lat'].data.squeeze()
     var = var - ctl
@@ -655,10 +655,10 @@ def compute_significance(file1, cfile, var, mask_cutoff, verbose=False):
             else:
                 sig_mask[j, i] = 0  # float("NaN")
             if verbose:
-                print(i, j)
-                print("#########################################################################")
-                print(cutoff, t_test)
-                print(t_test < cutoff)
+                print i, j
+                print "#########################################################################"
+                print cutoff, t_test
+                print t_test < cutoff
     return sig_mask
 
 
