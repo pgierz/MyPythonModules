@@ -567,6 +567,20 @@ def plot_array_on_ncdf_file_lon_lat_grid(var, file, mm, **cfopts):
     return cf
 
 
+def plot_mask_on_ncdf_file_lon_lat_grid(var, file, mm, **cfopts):
+    RUN = file
+    lon = RUN.variables['lon'].data.squeeze()
+    lat = RUN.variables['lat'].data.squeeze()
+    var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lons, lats, var, 1, latlon=True,
+                     hatches=["."], colors='none',
+                     **cfopts)
+    return cf
+
+
 def add_subplot_axes(ax, rect, axisbg='w', fig=None, transform=True):
     """ 
     What does this function do?
@@ -636,6 +650,7 @@ def compute_significance(file1, cfile, var, mask_cutoff, verbose=False):
     dims = {}
     for i, j in zip(dimnames, dimshape):
         dims[i] = j
+    print dims
     sig_mask = np.zeros((dims['lat'], dims['lon']))
     for i in range(dims['lon']):
         for j in range(dims['lat']):

@@ -126,7 +126,7 @@ class cosmos_standard_analysis(_cosmos_simulation):
         component = get_model_component_from_varname(varname)
         # What would this file be called on the remote host?
         if sfc and "_sfc.nc" not in self.suffix:
-            self.suffix.replace(".nc", "_sfc.nc")
+            self.suffix = self.suffix.replace(".nc", "_sfc.nc")
         rfile = self.path + "/" + self.expid + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
         # What would this file be called locally?
         lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
