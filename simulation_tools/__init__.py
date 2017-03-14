@@ -191,6 +191,11 @@ class cosmos_standard_analysis(_cosmos_simulation):
         self._deploy_script(self._script_dir + "/ANALYSIS_make_amoc.sh ", None)
         return netcdf.netcdf_file(get_remote_data(self.fullpath + "/post/mpiom/" + self.expid + "_mpiom_MOC_complete_180x40_Sv_index_45-60N.nc",
                                                   copy_to_local=True))
+    def AMOC_timeseries_30N(self):
+        self._deploy_script(self._script_dir + "/ANALYSIS_make_amoc.sh ", None)
+        return netcdf.netcdf_file(get_remote_data(self.fullpath + "/post/mpiom/" + self.expid + "_mpiom_MOC_complete_180x40_Sv_index_30-60N.nc",
+                                                  copy_to_local=True))
+
 
     def insolation(self):
         self._deploy_script(self._script_dir + "/ANALYSIS_insolation.sh", None)

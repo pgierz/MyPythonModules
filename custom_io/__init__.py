@@ -47,7 +47,7 @@ def _copy_remote_file(rfile, host, client, tmp=False):
         return lfile
     else:
         sftp = client.open_sftp()
-        print("PG:", rfile)
+        # print("PG:", rfile)
         info_rfile = sftp.stat(rfile)
         widgetlist = [rfile.split("/")[-1], ' (' + _sizeof_fmt(info_rfile.st_size) + ')', progressbar.Percentage(
         ), ' ', progressbar.FileTransferSpeed(), ' ', progressbar.Bar(), ' ', progressbar.ETA(), ' ', progressbar.Timer()]
