@@ -26,8 +26,9 @@ def debug(s):
 
 
 def header(s):
-    # print((bcolors.HEADER+s+bcolors.ENDC))
-    pass
+    if GLOBAL_DEBUG:
+        print((bcolors.HEADER+s+bcolors.ENDC))
+
 
 
 def fix_mpiom_levels(fname):
@@ -114,7 +115,7 @@ class cosmos_standard_analysis(_cosmos_simulation):
 
     def _check_mpiom(self, varname):
         component = get_model_component_from_varname(varname)
-        # print component
+        debug(component)
         if "mpiom" in component:
             self.suffix = "_remap.nc"
             return True
@@ -126,10 +127,10 @@ class cosmos_standard_analysis(_cosmos_simulation):
         mpiom_var = self._check_mpiom(varname)
         component = get_model_component_from_varname(varname)
         # What would this file be called on the remote host?
-        # print self.suffix
+        debug(self.suffix)
         if sfc and "_sfc.nc" not in self.suffix:
             self.suffix = self.suffix.replace(".nc", "_sfc.nc")
-        # print self.suffix
+        debug(self.suffix)
         rfile = self.path + "/" + self.expid + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
 
         # What would this file be called locally?
@@ -143,16 +144,17 @@ class cosmos_standard_analysis(_cosmos_simulation):
         # Otherwise, make and load:
         else:
             # Make
-            # print("Making file!")
+            debug("Making file!")
             self._deploy_script(self._script_dir +
                                 "/ANALYSIS_make_" + time_operator + ".sh " + varname, None)
-            if sfc and "_sfc.nc" not in self.suffix:
+            if sfc :
                 self._deploy_script(self._script_dir +
                                     "/ANALYSIS_select_sfc.sh "+rfile.replace("_sfc", ""), None)
-                rfile = rfile.replace(".nc", "_sfc.nc")
-            # print("Done!")
+                if "_sfc.nc" not in self.suffix:
+                    rfile = rfile.replace(".nc", "_sfc.nc")
+            debug("Done!")
             # Load
-            # print(rfile)
+            debug(rfile)
             return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
 
     # Start of standard time dependence analysis (monmean, seasmean, etc)
@@ -220,7 +222,7 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
         if sfc:
             self.suffix = self.suffix.replace(".nc", "_sfc.nc")
         rfile = self.path + "/" + self.expid + "/post/" + component.split("_")[0] + "/" + self.expid + "_" + component + "_" + varname + "_" + time_operator + self.suffix
-        # print(rfile)
+        debug(rfile)
         lfile = rfile.replace(custom_io_constants.replace_path_dict[self.host],
                               custom_io_constants.local_experiment_storehouse)
         debug(lfile)
@@ -250,10 +252,10 @@ class cosmos_wiso_analysis(cosmos_standard_analysis):
 
                 else:
                     self._time_analysis(varname, time_operator, sfc=sfc)
-                # print(("PG:", self.user+"@"+self.host+":"+rfile))
+                debug("PG: "+ self.user+"@"+self.host+":"+rfile)
                 return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
             else:
-                debug ("Standard analysis for echam")
+                debug("Standard analysis for echam")
                 # some other code that does the appropriate echam analysis
                 self._deploy_script(self._script_dir+"/ANALYSIS_calc_wiso_echam5_"+time_operator+".sh "+varname, None)
                 return netcdf.netcdf_file(get_remote_data(self.user+"@"+self.host+":"+rfile, copy_to_local=True))
