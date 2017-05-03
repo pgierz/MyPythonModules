@@ -755,6 +755,38 @@ def plot_overturning(fin, ax, labels=True, **cfopts):
         ax.set_ylabel("Depth (m)")
     return cf
 
+def plot_overturning_contours(fin, ax, labels=True, **cfopts):
+    dat = fin.variables["var101"].data
+    if hasattr(fin.variables["var101"], 'missing_value'):
+        # Mask out missing values based on what netcdf thinks the missing value is!
+        dat = np.ma.masked_equal(dat, fin.variables["var101"].missing_value)
+    elif hasattr(fin.variables["var101"], "_FillValue"):
+        dat = np.ma.masked_equal(dat, fin.variables["var101"]._FillValue)
+    else:
+        # Guess the standard value
+        dat = np.ma.masked_equal(dat, -8.9999999e+33)
+    dat = dat.squeeze()
+    lat = fin.variables['lat'].data.squeeze()
+    depth = fin.variables['lev'].data.squeeze()
+    # Make background gray
+    ax.patch.set_color('.25')
+    cf = ax.contourf(lat, depth*-1, dat,
+                     levels=cfopts["levels"],
+                     colors="white",
+                     extend='both') 
+    cl = ax.contour(lat, depth*-1, dat,
+                    levels=cfopts["levels"],
+                    colors="black",
+                    cmap=None,
+                    extend='both')
+    # Label contour lines:
+    matplotlib.pyplot.clabel(cl, inline=1, fmt='%1.1f')
+    ax.set_xlim(-30, 90)
+    if labels:
+        ax.set_xlabel("Latitude (deg)")
+        ax.set_ylabel("Depth (m)")
+    return cl
+
 def plot_overturning_anom(fin, ctrl, ax, labels=True, **cfopts):
     rdat = fin.variables["var101"].data
     cdat = ctrl.variables["var101"].data
@@ -795,6 +827,48 @@ def plot_overturning_anom(fin, ctrl, ax, labels=True, **cfopts):
         ax.set_ylabel("Depth (m)")
     return cf
 
+
+def plot_overturning_anom_contours(fin, ctrl, ax, labels=True, **cfopts):
+    rdat = fin.variables["var101"].data
+    cdat = ctrl.variables["var101"].data
+    if hasattr(fin.variables["var101"], 'missing_value'):
+        # Mask out missing values based on what netcdf thinks the missing value is!
+        rdat = np.ma.masked_equal(rdat, fin.variables["var101"].missing_value)
+    elif hasattr(fin.variables["var101"], "_FillValue"):
+        rdat = np.ma.masked_equal(rdat, fin.variables["var101"]._FillValue)
+    else:
+        # Guess the standard value
+        rdat = np.ma.masked_equal(rdat, -8.9999999e+33)
+    rdat = rdat.squeeze()
+    if hasattr(ctrl.variables["var101"], 'missing_value'):
+        # Mask out missing values based on what netcdf thinks the missing value is!
+        cdat = np.ma.masked_equal(cdat, ctrl.variables["var101"].missing_value)
+    elif hasattr(ctrl.variables["var101"], "_FillValue"):
+        cdat = np.ma.masked_equal(cdat, ctrl.variables["var101"]._FillValue)
+    else:
+        # Guess the standard value
+        cdat = np.ma.masked_equal(cdat, -8.9999999e+33)
+    cdat = cdat.squeeze()
+    lat = fin.variables['lat'].data.squeeze()
+    depth = fin.variables['lev'].data.squeeze()
+    dat = rdat - cdat
+    # Make background gray
+    ax.patch.set_color('.25')
+    cf = ax.contourf(lat, depth*-1, dat,
+                     levels=cfopts["levels"],
+                     colors="white",
+                     extend='both')
+    cl = ax.contour(lat, depth*-1, dat,
+                    levels=cfopts["levels"],
+                    colors="black",
+                    extend='both')
+    # Label contour lines:
+    matplotlib.pyplot.clabel(cl, inline=1, fmt='%1.1f')
+    ax.set_xlim(-30, 90)
+    if labels:
+        ax.set_xlabel("Latitude (deg)")
+        ax.set_ylabel("Depth (m)")
+    return cl
 
 
 
