@@ -40,7 +40,7 @@ def _set_up_client(host, user):
     return client
 
 
-def _copy_remote_file(rfile, host, client, tmp=False):
+def _copy_remote_file(rfile, host, client, tmp=False, show_progress=False):
     lfile = rfile.replace(constants.replace_path_dict[
                           host], constants.local_experiment_storehouse)
     if os.path.exists(lfile):
@@ -49,20 +49,24 @@ def _copy_remote_file(rfile, host, client, tmp=False):
         sftp = client.open_sftp()
         # print("PG:", rfile)
         info_rfile = sftp.stat(rfile)
-        widgetlist = [rfile.split("/")[-1], ' (' + _sizeof_fmt(info_rfile.st_size) + ')', progressbar.Percentage(
-        ), ' ', progressbar.FileTransferSpeed(), ' ', progressbar.Bar(), ' ', progressbar.ETA(), ' ', progressbar.Timer()]
-        pbar = progressbar.ProgressBar(
-            widgets=widgetlist, maxval=info_rfile.st_size)
+        if show_progress:
+            widgetlist = [rfile.split("/")[-1], ' (' + _sizeof_fmt(info_rfile.st_size) + ')', progressbar.Percentage(
+            ), ' ', progressbar.FileTransferSpeed(), ' ', progressbar.Bar(), ' ', progressbar.ETA(), ' ', progressbar.Timer()]
+            pbar = progressbar.ProgressBar(
+                widgets=widgetlist, maxval=info_rfile.st_size)
 
-        def _progress_cb(done, total):
-            if pbar.start_time is None:
-                pbar.start()
-            pbar.update(done)
-
+            def _progress_cb(done, total):
+                if pbar.start_time is None:
+                    pbar.start()
+                pbar.update(done)
+        else:
+            def _progress_cb(done, total):
+                return None
         sftp.get(rfile,
                  constants.remote_dump + os.path.basename(rfile),
                  callback=_progress_cb)
-        pbar.finish()
+        if show_progress:
+            pbar.finish()
         if not tmp:
             path = os.path.dirname(lfile)
             try:
