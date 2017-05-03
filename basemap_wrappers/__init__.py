@@ -108,3 +108,26 @@ def map_natl2(thisax, coastlines=True):
     if coastlines:
         m.drawcoastlines(linewidth=0.33)
     return m
+
+def map_greenland(thisax = None, coastlines = True, fill_color = 'aqua', cont_color = 'coral'):
+    """
+    Generates a basemap instance with a focus around greenland, fills coastlines and background colors
+    
+    Arguments:
+    - `ax`: which axis to use; defaults to current axis
+    - `coastlines`: plot coastlines, defaults to True
+    - `fill_color`: which color to plot missing values in, defaults to aqua (ocean blue)
+    """
+    map = Basemap(projection = 'stere',
+                  lat_0 = 72.0,
+                  lon_0 = -40.0,
+                  lat_ts = 72.0,
+                  height = 3000000,
+                  width = 3500000,
+                  resolution = 'l',
+                  ax = thisax)
+    if coastlines:
+        map.drawcoastlines(linewidth = 0.5)
+    map.fillcontinents(color = cont_color, lake_color = fill_color, zorder = 0)	
+    map.drawmapboundary(fill_color = fill_color)	   
+    return map
