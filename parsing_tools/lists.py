@@ -35,7 +35,6 @@ echam5_wiso_list = ["wisoaprt_d",
                     "rogl",
                     "runtoc",
                     "wisosw_d",
-                    "tsurf",
                     "ptemp"]
 
 mpiom_wiso_list = ["scal_lon",    
