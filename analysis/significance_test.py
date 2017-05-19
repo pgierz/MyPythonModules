@@ -9,9 +9,9 @@ Paul J. Gierz Wed Feb 11 11:28:39 2015
 # TODO: MODULE DOCUMENTATION!!!
 
 """
-# ############################################################################## #
+######################################################################
 # Module Things, probably best if private and not imported
-# ############################################################################## #
+######################################################################
 
 # Notes:
 # I can probably redo this whole this as a class! Is that smart? Probably
@@ -24,49 +24,18 @@ import time
 
 
 def _load_data(path):
-    # TODO: This is living in a different module now, it should be loaded from custom_io
-    """
-    Loads any *netcdf* file into the workspace. Can also load remote files using sftp.
+    # TODO: This is living in a different module now, it should be loaded from
+    # custom_io
+    """Loads any *netcdf* file into the workspace. Can also load remote
+    files using sftp.
 
     Keyword Arguments:
     path -- path to the file you wish to load
 
     Paul J. Gierz, Thu Jan 15 13:52:08 2015
+
     """
-    def get_remote_data(filepath):
-        """
-        A paramiko wrapper that gets file from a remote computer. Parses
-        hostname from filepath. Works only for netcdf files!
-
-        Arguments:
-            filepath -- the path with hostname.
-
-        Example:
-            get_remote_data('pgierz@sx8:/sx8/user1/pgierz/testfile.nc')
-
-        Paul J. Gierz
-        """
-        import paramiko
-        import os
-        from scipy.io import netcdf
-        user = filepath.split(':')[0].split('@')[0]
-        host = filepath.split(':')[0].split('@')[1]
-        rfile = filepath.split(':')[1]
-        privatekeyfile = os.path.expanduser('~/.ssh/id_rsa')
-        mykey = paramiko.RSAKey.from_private_key_file(privatekeyfile)
-        client = paramiko.SSHClient()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(host, username=user, pkey=mykey)
-        sftp = client.open_sftp()
-        fileObject = sftp.file(rfile)
-        file = netcdf.netcdf_file(fileObject)
-        return file
-
-    def get_local_data(filepath):
-        from scipy.io import netcdf
-        return netcdf.netcdf_file(filepath)
-
+    from custom_io.get_remote_data import get_remote_data
     if type(path) is netcdf.netcdf_file:
         return path
     elif type(path) is str:
@@ -78,7 +47,7 @@ def _load_data(path):
             # load data remotely necessarily
             return get_remote_data(path)
         else:
-            return get_local_data(path)
+            return netcdf.netcdf_file(path)
     else:
         # Fail horribly
         sys.exit("Please give a string!!")
@@ -89,12 +58,17 @@ def _data_prep_for_plotting(variablename, ncdf_file):
         if type(ncdf_file) is str:
             ncdf_file = _load_data(ncdf_file)
         else:
-            sys.exit("You've broken the data_prep_for_plotting function, please pay 3 tokens to continue")
+            sys.exit(
+                "You've broken the data_prep_for_plotting function, please pay 3, \
+                tokens to continue")
     if type(variablename) is np.ndarray:
-            dat = variablename
+        dat = variablename
     else:
-        if not [variablename, 'lon', 'lat'] <= ncdf_file.variables.keys():  # This is a contains statement in python. It's fucking weird, but whatever
-            sys.exit("The variable you've requested doesn't exist, or lon/lat are incorrectly named in your netcdf file. Please pay 2 tokens to continue")
+        # This is a contains statement in python. It's fucking weird, but
+        # whatever
+        if not [variablename, 'lon', 'lat'] <= ncdf_file.variables.keys():
+            sys.exit(
+                "The variable you've requested doesn't exist, or lon/lat are incorrectly named in your netcdf file. Please pay 2 tokens to continue")
         else:
             dat = ncdf_file.variables[variablename].data.squeeze()
     # Mask dat1
@@ -106,9 +80,9 @@ def _data_prep_for_plotting(variablename, ncdf_file):
     lons, lats = np.meshgrid(lon, lat)
     return lons, lats, dat
 
-# ############################################################################## #
+######################################################################
 # NON-PRIVATE THINGS
-# ############################################################################## #
+######################################################################
 
 
 def estimated_autocorrelation(x):
@@ -123,16 +97,18 @@ def estimated_autocorrelation(x):
     """
     n = len(x)
     variance = x.var()
-    x = x-x.mean()
+    x = x - x.mean()
     r = np.correlate(x, x, mode='full')[-n:]
-    result = r/(variance*(np.arange(n, 0, -1)))
+    result = r / (variance * (np.arange(n, 0, -1)))
     return result
 
 
 class significance_test(object):
+
     """Documentation for significance_test
 
     """
+
     def __init__(self, file1, file2, variable1, variable2):
         super(significance_test, self).__init__()
         time_start = time.time()
@@ -141,8 +117,10 @@ class significance_test(object):
         time_start = time.time()
         self.f2 = _load_data(file2)
         print "Loaded %(file)s in %(time)s seconds" % {'file': file2, 'time': time.time() - time_start}
-        self._lons, self._lats, self.variable1 = _data_prep_for_plotting(variable1, file1)
-        self._lons, self._lats, self.variable2 = _data_prep_for_plotting(variable2, file2)
+        self._lons, self._lats, self.variable1 = _data_prep_for_plotting(
+            variable1, file1)
+        self._lons, self._lats, self.variable2 = _data_prep_for_plotting(
+            variable2, file2)
         self.anom = self.variable1.mean(axis=0) - self.variable2.mean(axis=0)
         dimnames = self.f1.variables[variable1].dimensions
         dimshape = self.f1.variables[variable1].data.shape
@@ -156,11 +134,12 @@ class significance_test(object):
                 yy = self.variable2[:, j, i]
                 autocorrx = max(estimated_autocorrelation(xx)[1], 0)
                 autocorry = max(estimated_autocorrelation(yy)[1], 0)
-                eff_dof1 = dims['time']*(1-autocorrx)/(1+autocorrx)
-                eff_dof2 = dims['time']*(1-autocorry)/(1+autocorry)
+                eff_dof1 = dims['time'] * (1 - autocorrx) / (1 + autocorrx)
+                eff_dof2 = dims['time'] * (1 - autocorry) / (1 + autocorry)
                 eff_dof_comb = min(eff_dof1, eff_dof2)
                 cutoff = scipy.stats.t.ppf(0.975, eff_dof_comb)
-                t_test = abs(xx.mean()-yy.mean())/((xx.var()/dims['time']+yy.var()/dims['time'])**0.5)
+                t_test = abs(
+                    xx.mean() - yy.mean()) / ((xx.var() / dims['time'] + yy.var() / dims['time']) ** 0.5)
                 if t_test < cutoff:
                     self.sig_mask[j, i] = 1
                 else:
@@ -169,11 +148,13 @@ class significance_test(object):
 
     def plot_anomaly(self, m, plot_hatches=True, **kwargs):
         # M needs to be a basemap instance
-        cb = m.contourf(self._lons, self._lats, self.anom, latlon=True, **kwargs)
+        cb = m.contourf(
+            self._lons, self._lats, self.anom, latlon=True, **kwargs)
         m.colorbar(cb)
         if plot_hatches:
             mask = np.ma.masked_not_equal(self.sig_mask, 1)
-            m.contourf(self._lons, self._lats, mask, 1, colors='white', hatches=['////'], latlon=True)
+            m.contourf(self._lons, self._lats, mask, 1,
+                       colors='white', hatches=['////'], latlon=True)
 
     def save_sig_mask_as_nc(self, ofile):
         # Save outdata for netcdf!

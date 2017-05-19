@@ -1,4 +1,17 @@
-def sizeof_fmt(num, suffix='B'):
+local_experiment_storehouse = "/Volumes/Research_HD/"
+
+def _force_symlink(file1, file2):
+    import os
+    import errno
+    try:
+        os.symlink(file1, file2)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            os.remove(file2)
+            os.symlink(file1, file2)
+
+
+def _sizeof_fmt(num, suffix='B'):
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
@@ -16,7 +29,7 @@ def _check_for_local_file(name, path):
 
     Paul J. Gierz, Sun Jul 19 11:43:35 2015
     """
-    # print "Looking for:", name, path
+    # print "Looking for:", name, "in", path
     # print "---------------------------------"
     foundname = False
     for r, d, f in os.walk(path):
@@ -32,14 +45,18 @@ def _check_for_local_file(name, path):
 
 def _refile_local_file_correctly(filepath, from_where):
     import os
+    import shutil
     # Check if this directory exists locally:
-    if not os.path.exists("/Users/pgierz/Research/" + '/'.join(filepath.split("/")[4:-1])):
+    # FIXME: What happens if we don't throw away the first 4 parts of the path...
+    if not os.path.exists(local_experiment_storehouse + '/'.join(filepath.split("/")[4:-1])):
         os.makedirs(
-            "/Users/pgierz/Research/" + '/'.join(filepath.split("/")[4:-1]))
+            local_experiment_storehouse + '/'.join(filepath.split("/")[4:-1]))
     # TODO: Check if the run is registered in ~/.all_runs:
-    os.rename(from_where + os.path.basename(filepath),
-              "/Users/pgierz/Research/" + '/'.join(filepath.split("/")[4:]))
-    return "/Users/pgierz/Research/" + '/'.join(filepath.split("/")[4:-1]) + "/", os.path.basename(filepath)
+    # print "Renaming from: ", from_where + os.path.basename(filepath)
+    # print "To: ", local_experiment_storehouse + '/'.join(filepath.split("/")[4:])
+    shutil.move(from_where + os.path.basename(filepath),
+                local_experiment_storehouse + '/'.join(filepath.split("/")[4:]))
+    return local_experiment_storehouse + '/'.join(filepath.split("/")[4:-1]) + "/", os.path.basename(filepath)
 
 
 def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
@@ -98,7 +115,7 @@ def _copy_remote_file(filepath, remote_dump="/tmp/remote_data/"):
             client.connect(host, username=user, pkey=mykey)
             sftp = client.open_sftp()
             info_rfile = sftp.stat(rfile)
-            widgetlist = [rfile.split("/")[-1], ' (' + sizeof_fmt(info_rfile.st_size) + ')', progressbar.Percentage(
+            widgetlist = [rfile.split("/")[-1], ' (' + _sizeof_fmt(info_rfile.st_size) + ')', progressbar.Percentage(
             ), ' ', progressbar.FileTransferSpeed(), ' ', progressbar.Bar(), ' ', progressbar.ETA(), ' ', progressbar.Timer()]
             pbar = progressbar.ProgressBar(
                 widgets=widgetlist, maxval=info_rfile.st_size)
@@ -147,7 +164,7 @@ def _check_for_local(name, path):
             return False
 
 
-def get_remote_data(filepath, time=False, info=False, copy_to_local=False):
+def get_remote_data(filepath, time=False, info=False, copy_to_local=True):
     """
     A paramiko wrapper that gets file from a remote computer. Parses
     hostname from filepath. Works only for netcdf files!

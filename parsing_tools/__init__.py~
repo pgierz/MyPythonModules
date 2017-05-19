@@ -1,0 +1,44 @@
+def get_model_component_from_varname(varname):
+    if "REFDIR" in os.environ.keys():
+        REFDIR = os.environ["REFDIR"]
+    else:
+        if socket.gethostname() == "rayo3":
+            REFDIR = "/csys/nobackup1_PALEO/pgierz/reference_stuff/"
+        elif socket.gethostname() == "uv100":
+            REFDIR = "/csys/nobackup1_PALEO/pgierz/reference_stuff/"
+        elif socket.gethostname() == "stan1":
+            REFDIR = "/home/ace/pgierz/reference_stuff"
+        else:
+            print "REFDIR not found, recloning..."
+            os.system("git clone git@bitbucket.org:pgierz/reference_stuff.git")
+            REFDIR = "./reference_stuff/"            
+    with open(REFDIR + "/echam5_variables.txt", "r") as f:
+        echam5_main_varlist = f.readlines()
+        for v in echam5_main_varlist:
+            echam5_main_varlist[
+                echam5_main_varlist.index(v)] = v.strip().split()[1]
+    with open(REFDIR + "/echam5_wiso_variables.txt", "r") as f:
+        echam5_wiso_varlist = f.readlines()
+        for v in echam5_wiso_varlist:
+            echam5_wiso_varlist[
+                echam5_wiso_varlist.index(v)] = v.strip().split()[1]
+    with open(REFDIR + "/mpiom_variables.txt", "r") as f:
+        mpiom_main_varlist = f.readlines()
+        for v in mpiom_main_varlist:
+            mpiom_main_varlist[
+                mpiom_main_varlist.index(v)] = v.strip().split()[1]
+    with open(REFDIR + "/mpiom_wiso_variables.txt", "r") as f:
+        mpiom_wiso_varlist = f.readlines()
+        for v in mpiom_wiso_varlist:
+            mpiom_wiso_varlist[
+                mpiom_wiso_varlist.index(v)] = v.strip().split()[1]
+    if varname in echam5_main_varlist:
+        return "echam5"
+    elif varname in echam5_wiso_varlist:
+        return "echam5-wiso"
+    elif varname in mpiom_main_varlist:
+        return "mpiom"
+    elif varname in mpiom_wiso_varlist:
+        return "mpiom-wiso"
+    else:
+        return None

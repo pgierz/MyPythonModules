@@ -25,5 +25,3 @@ def map_greenland(coastlines = True, thisax = plt.gca(), fill_color = 'aqua'):
     return m
 
 
-map_greenland()
-plt.show()
