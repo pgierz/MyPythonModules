@@ -5,6 +5,10 @@
 # C extensions
 *.so
 
+# Mac DS Store
+.DS_Store
 # Distribution / packaging
 .Python
 *.ipynb
+# Specific files
+bibpreprocessor.py
