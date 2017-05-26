@@ -8,7 +8,7 @@ Please follow the instructions to get the functions working on your account.
 2. set up your `PYTHONPATH` (in `.bashrc` or similar)
 `export PYTHONPATH=${HOME}/Python_Helpers:${PYTHONPATH}`
 3. Test
-```bash
+```shell
 
 $ ipython
 ... some start up message ...
@@ -18,8 +18,10 @@ $ ipython
 
 # How to use
 I'll probably add a detailed description to this in the next several days/weeks. In principle, two important modules are ready to use:
-     - `plot_tools` : contains functions for plotting netcdf variables onto maps
-     - `basemap_wrappers` : some shortcuts for the Basemap toolkit to make maps faster
+
+- `plot_tools` : contains functions for plotting netcdf variables onto maps
+
+- `basemap_wrappers` : some shortcuts for the Basemap toolkit to make maps faster
 
 Here's a minimal example script:
 ```python
@@ -34,3 +36,6 @@ m = map_global(thisax=axs, fill_color=None)
 plot_var_from_ncdf_file("tsurf", f, m)
 plt.show()
 ```
+
+Good luck!
+Paul
