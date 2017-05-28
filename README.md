@@ -1,12 +1,21 @@
 # Python_Helpers
-A library of some useful python wrappers to facilitate analysis and visualization work
+A library of some useful python wrappers to facilitate analysis and
+visualization work. Important to note here that *none* of these tools are
+directly written by myself, I've just glued the functionality into easier to
+digest chunks. All of the actual work is done by the wonderful people
+writing [matplotlib](https://github.com/matplotlib/matplotlib)
+and [basemap](https://github.com/matplotlib/basemap)
 
 # How to Install:
 Please follow the instructions to get the functions working on your account.
 1. clone the repository (alternatively, make a github account, fork, and clone your own version)
+
 `git clone https://github.com/AWI-Paleodyn/Python_Helpers.git`
+
 2. set up your `PYTHONPATH` (in `.bashrc` or similar)
+
 `export PYTHONPATH=${HOME}/Python_Helpers:${PYTHONPATH}`
+
 3. Test
 ```shell
 
@@ -15,6 +24,8 @@ $ ipython
 [1] from plot_tools import plot_var_from_ncdf_file 
 
 ```
+if this import successfully goes through, everything is configured correctly. Go celebrate with a coffee! :coffee: 
+
 
 # How to use
 I'll probably add a detailed description to this in the next several days/weeks. In principle, two important modules are ready to use:
