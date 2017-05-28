@@ -3,7 +3,7 @@ A library of some useful python wrappers to facilitate analysis and visualizatio
 
 # How to Install:
 Please follow the instructions to get the functions working on your account.
-1. clone the repository
+1. clone the repository (alternatively, make a github account, fork, and clone your own version)
 `git clone https://github.com/AWI-Paleodyn/Python_Helpers.git`
 2. set up your `PYTHONPATH` (in `.bashrc` or similar)
 `export PYTHONPATH=${HOME}/Python_Helpers:${PYTHONPATH}`
@@ -23,7 +23,8 @@ I'll probably add a detailed description to this in the next several days/weeks.
 
 - `basemap_wrappers` : some shortcuts for the Basemap toolkit to make maps faster
 
-Here's a minimal example script:
+Here's a minimal example script, also included in the directory `examples`:
+
 ```python
 from plot_tools import plot_var_from_ncdf_file
 from basemap_wrappers import map_global
