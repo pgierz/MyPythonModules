@@ -552,6 +552,16 @@ def plot_var_anom_from_ncdf_file_timestep_depth(varname, ts, depth, file, cfile,
     return cf
 
 
+def plot_array_on_lon_lat_array(var, lon, lat, mm, **cfopts):
+    #var, lon = shiftgrid(180., var, lon, start=False)
+    var, lon = addcyclic(var, lon)
+    mm.drawmapboundary(fill_color='gray')
+    #lons, lats = np.meshgrid(lon, lat)
+    cf = mm.contourf(lon, lat, var, latlon=True,
+                     **cfopts)
+    return cf
+
+
 
 def plot_array_on_ncdf_file_lon_lat_grid(var, file, mm, **cfopts):
     RUN = file
@@ -705,9 +715,7 @@ def plot_var_anom_hatching_from_ncdf_file(varname, RUN, CTL, mm, mask_cutoff=0.9
     mask, lon2 = shiftgrid(180., mask, lon2, start=False)
     mask, lon2 = addcyclic(mask, lon2)
     mm.contourf(
-        lons, lats, mask, 1, colors="none",  hatches=["\\\\\\\\"], latlon=True)
-    mm.contourf(
-        lons, lats, mask, 1, colors="none", hatches=["////////"], latlon=True)
+        lons, lats, mask, 1, colors="none",  hatches=["..."], latlon=True)
     return cf
 
 

@@ -82,15 +82,15 @@ def _copy_remote_file(rfile, host, client, tmp=False, show_progress=False):
 
 
 # Main Function
-def get_remote_data(filepath, copy_to_local=None):
+def get_remote_data(filepath, copy_to_local=None, show_progress=False):
     copy_to_local = copy_to_local and os.path.exists(constants.local_experiment_storehouse)
     user = filepath.split(':')[0].split('@')[0]
     host = filepath.split(':')[0].split('@')[1]
     rfile = filepath.split(':')[1]
     client = _set_up_client(host, user)
     if copy_to_local:
-        lfile = _copy_remote_file(rfile, host, client)
+        lfile = _copy_remote_file(rfile, host, client, show_progress=show_progress)
     else:
-        lfile = _copy_remote_file(rfile, host, client, tmp=True)
+        lfile = _copy_remote_file(rfile, host, client, tmp=True, show_progress=show_progress)
     client.close()
     return lfile
